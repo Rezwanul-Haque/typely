@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0",
+  "productName": "Typely",
+  "version": "0.1.0",
+  "identifier": "com.typely.app",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "Typely",
+        "width": 800,
+        "height": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "visible": false,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "center": true,
+        "skipTaskbar": false
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true,
+      "menuOnLeftClick": false,
+      "tooltip": "Typely - Text expansion made easy"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Productivity",
+    "copyright": "© 2024 Typely Team",
+    "shortDescription": "Text expansion made easy",
+    "longDescription": "Cross-platform text expansion tool that helps you type faster with custom snippets and triggers.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "externalBin": [],
+    "targets": "all"
+  },
+  "plugins": {
+    "globalShortcut": {
+      "shortcuts": {
+        "toggle": "CmdOrCtrl+Shift+T"
+      }
+    },
+    "autostart": {
+      "enabled": true
+    },
+    "notification": {
+      "requestPermission": true
+    }
+  }
+}

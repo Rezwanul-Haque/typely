@@ -1,0 +1,15 @@
+[
+  {
+    "trigger": "::hello",
+    "replacement": "Hello, World!",
+    "tags": [
+      "greeting",
+      "sample"
+    ]
+  },
+  {
+    "trigger": "::test",
+    "replacement": "This is a test snippet",
+    "tags": null
+  }
+]

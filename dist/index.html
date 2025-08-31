@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typely</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #007AFF;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #86868b;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: #007AFF;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0051D0;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #007AFF;
+            border: 1px solid #007AFF;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f8ff;
+        }
+
+        .btn-danger {
+            background: #FF3B30;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d70015;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .snippets-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .snippet-item {
+            padding: 20px;
+            border-bottom: 1px solid #f2f2f7;
+            transition: background-color 0.2s;
+        }
+
+        .snippet-item:hover {
+            background: #f8f9fa;
+        }
+
+        .snippet-item:last-child {
+            border-bottom: none;
+        }
+
+        .snippet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .snippet-trigger {
+            font-family: 'SF Mono', Monaco, monospace;
+            background: #f2f2f7;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #007AFF;
+        }
+
+        .snippet-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .snippet-replacement {
+            margin: 10px 0;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .snippet-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #86868b;
+        }
+
+        .snippet-tags {
+            display: flex;
+            gap: 4px;
+        }
+
+        .tag {
+            background: #e5f4fd;
+            color: #007AFF;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #1d1d1f;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #1d1d1f;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #007AFF;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #007AFF;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #86868b;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #86868b;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #1d1d1f;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #86868b;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #34C759;
+        }
+
+        .notification.error {
+            background: #FF3B30;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                order: -1;
+                margin-bottom: 15px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Typely</h1>
+            <p>Text expansion made easy</p>
+        </header>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-snippets">-</div>
+                <div class="stat-label">Total Snippets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-usage">-</div>
+                <div class="stat-label">Total Expansions</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search snippets...">
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="new-snippet-btn">+ New Snippet</button>
+                <button class="btn btn-secondary" id="import-btn">Import</button>
+                <button class="btn btn-secondary" id="export-btn">Export</button>
+            </div>
+        </div>
+
+        <div class="snippets-container">
+            <div id="snippets-list" class="loading">
+                Loading snippets...
+            </div>
+        </div>
+    </div>
+
+    <!-- New/Edit Snippet Modal -->
+    <div id="snippet-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">New Snippet</h3>
+            <form id="snippet-form">
+                <div class="form-group">
+                    <label for="trigger-input">Trigger</label>
+                    <input type="text" id="trigger-input" placeholder="e.g., ::hello" required>
+                </div>
+                <div class="form-group">
+                    <label for="replacement-input">Replacement</label>
+                    <textarea id="replacement-input" placeholder="Hello, World!" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="tags-input">Tags (comma-separated)</label>
+                    <input type="text" id="tags-input" placeholder="greeting, work">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-btn">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Import Tauri API
+        const { invoke } = window.__TAURI__.tauri;
+        const { listen } = window.__TAURI__.event;
+        const { save, open } = window.__TAURI__.dialog;
+        const { writeTextFile, readTextFile } = window.__TAURI__.fs;
+
+        // Application state
+        let snippets = [];
+        let editingSnippet = null;
+
+        // DOM elements
+        const snippetsList = document.getElementById('snippets-list');
+        const searchInput = document.getElementById('search-input');
+        const snippetModal = document.getElementById('snippet-modal');
+        const snippetForm = document.getElementById('snippet-form');
+        const newSnippetBtn = document.getElementById('new-snippet-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const importBtn = document.getElementById('import-btn');
+        const exportBtn = document.getElementById('export-btn');
+
+        // Initialize app
+        async function init() {
+            await loadSnippets();
+            await loadStatistics();
+            setupEventListeners();
+        }
+
+        // Load snippets from backend
+        async function loadSnippets() {
+            try {
+                snippets = await invoke('get_snippets');
+                renderSnippets();
+            } catch (error) {
+                console.error('Failed to load snippets:', error);
+                showNotification('Failed to load snippets', 'error');
+            }
+        }
+
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const stats = await invoke('get_statistics');
+                document.getElementById('total-snippets').textContent = stats.total_snippets;
+                document.getElementById('total-usage').textContent = stats.total_usage;
+            } catch (error) {
+                console.error('Failed to load statistics:', error);
+            }
+        }
+
+        // Render snippets list
+        function renderSnippets() {
+            if (snippets.length === 0) {
+                snippetsList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No snippets yet</h3>
+                        <p>Create your first snippet to get started!</p>
+                        <br>
+                        <button class="btn btn-primary" onclick="showSnippetModal()">+ Create Snippet</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const filteredSnippets = filterSnippets();
+            
+            snippetsList.innerHTML = filteredSnippets.map(snippet => `
+                <div class="snippet-item">
+                    <div class="snippet-header">
+                        <span class="snippet-trigger">${escapeHtml(snippet.trigger)}</span>
+                        <div class="snippet-actions">
+                            <button class="btn btn-small btn-secondary" onclick="editSnippet('${snippet.id}')">Edit</button>
+                            <button class="btn btn-small btn-secondary" onclick="testExpansion('${snippet.trigger}')">Test</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteSnippet('${snippet.id}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="snippet-replacement">${escapeHtml(snippet.replacement)}</div>
+                    <div class="snippet-meta">
+                        <div class="snippet-tags">
+                            ${snippet.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                        <span>Used ${snippet.usage_count} times</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Filter snippets based on search
+        function filterSnippets() {
+            const query = searchInput.value.toLowerCase().trim();
+            if (!query) return snippets;
+            
+            return snippets.filter(snippet => 
+                snippet.trigger.toLowerCase().includes(query) ||
+                snippet.replacement.toLowerCase().includes(query) ||
+                snippet.tags.some(tag => tag.toLowerCase().includes(query))
+            );
+        }
+
+        // Show snippet modal
+        function showSnippetModal(snippet = null) {
+            editingSnippet = snippet;
+            const modal = document.getElementById('snippet-modal');
+            const title = document.getElementById('modal-title');
+            const form = document.getElementById('snippet-form');
+            
+            if (snippet) {
+                title.textContent = 'Edit Snippet';
+                document.getElementById('trigger-input').value = snippet.trigger;
+                document.getElementById('replacement-input').value = snippet.replacement;
+                document.getElementById('tags-input').value = snippet.tags.join(', ');
+            } else {
+                title.textContent = 'New Snippet';
+                form.reset();
+            }
+            
+            modal.style.display = 'block';
+            document.getElementById('trigger-input').focus();
+        }
+
+        // Hide snippet modal
+        function hideSnippetModal() {
+            document.getElementById('snippet-modal').style.display = 'none';
+            editingSnippet = null;
+        }
+
+        // Save snippet
+        async function saveSnippet(event) {
+            event.preventDefault();
+            
+            const trigger = document.getElementById('trigger-input').value.trim();
+            const replacement = document.getElementById('replacement-input').value.trim();
+            const tagsInput = document.getElementById('tags-input').value.trim();
+            const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : null;
+            
+            try {
+                if (editingSnippet) {
+                    await invoke('update_snippet', {
+                        id: editingSnippet.id,
+                        trigger: trigger !== editingSnippet.trigger ? trigger : null,
+                        replacement: replacement !== editingSnippet.replacement ? replacement : null,
+                        tags: JSON.stringify(tags) !== JSON.stringify(editingSnippet.tags) ? tags : null,
+                        isActive: null
+                    });
+                    showNotification('Snippet updated successfully', 'success');
+                } else {
+                    await invoke('create_snippet', { trigger, replacement, tags });
+                    showNotification('Snippet created successfully', 'success');
+                }
+                
+                hideSnippetModal();
+                await loadSnippets();
+                await loadStatistics();
+            } catch (error) {
+                console.error('Failed to save snippet:', error);
+                showNotification('Failed to save snippet: ' + error, 'error');
+            }
+        }
+
+        // Edit snippet
+        function editSnippet(id) {
+            const snippet = snippets.find(s => s.id === id);
+            if (snippet) {
+                showSnippetModal(snippet);
+            }
+        }
+
+        // Delete snippet
+        async function deleteSnippet(id) {
+            if (!confirm('Are you sure you want to delete this snippet?')) {
+                return;
+            }
+            
+            try {
+                await invoke('delete_snippet', { id });
+                showNotification('Snippet deleted successfully', 'success');
+                await loadSnippets();
+                await loadStatistics();
+            } catch (error) {
+                console.error('Failed to delete snippet:', error);
+                showNotification('Failed to delete snippet: ' + error, 'error');
+            }
+        }
+
+        // Test expansion
+        async function testExpansion(trigger) {
+            try {
+                const result = await invoke('expand_snippet', { trigger });
+                if (result.success) {
+                    showNotification(`'${trigger}' expands to: ${result.expanded_text}`, 'success');
+                } else {
+                    showNotification('Expansion failed: ' + (result.error_message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Failed to test expansion:', error);
+                showNotification('Failed to test expansion: ' + error, 'error');
+            }
+        }
+
+        // Export snippets
+        async function exportSnippets() {
+            try {
+                const filePath = await save({
+                    defaultPath: 'typely-snippets.json',
+                    filters: [{ name: 'JSON', extensions: ['json'] }]
+                });
+                
+                if (filePath) {
+                    const jsonData = await invoke('export_snippets');
+                    await writeTextFile(filePath, jsonData);
+                    showNotification('Snippets exported successfully', 'success');
+                }
+            } catch (error) {
+                console.error('Failed to export snippets:', error);
+                showNotification('Failed to export snippets: ' + error, 'error');
+            }
+        }
+
+        // Import snippets
+        async function importSnippets() {
+            try {
+                const filePaths = await open({
+                    multiple: false,
+                    filters: [{ name: 'JSON', extensions: ['json'] }]
+                });
+                
+                if (filePaths && filePaths.length > 0) {
+                    const jsonData = await readTextFile(filePaths[0]);
+                    const result = await invoke('import_snippets', { jsonData, overwrite: false });
+                    
+                    showNotification(
+                        `Import completed: ${result.imported_count} imported, ${result.skipped_count} skipped, ${result.error_count} errors`,
+                        result.error_count > 0 ? 'error' : 'success'
+                    );
+                    
+                    await loadSnippets();
+                    await loadStatistics();
+                }
+            } catch (error) {
+                console.error('Failed to import snippets:', error);
+                showNotification('Failed to import snippets: ' + error, 'error');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            // Remove existing notification
+            const existing = document.querySelector('.notification');
+            if (existing) {
+                existing.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            // Hide notification
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Utility function to escape HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Search
+            searchInput.addEventListener('input', renderSnippets);
+            
+            // Modal
+            newSnippetBtn.addEventListener('click', () => showSnippetModal());
+            cancelBtn.addEventListener('click', hideSnippetModal);
+            snippetForm.addEventListener('submit', saveSnippet);
+            
+            // Import/Export
+            importBtn.addEventListener('click', importSnippets);
+            exportBtn.addEventListener('click', exportSnippets);
+            
+            // Close modal on outside click
+            window.addEventListener('click', (event) => {
+                if (event.target === snippetModal) {
+                    hideSnippetModal();
+                }
+            });
+            
+            // Listen for show new snippet event from tray
+            listen('show-new-snippet', () => {
+                showSnippetModal();
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (event) => {
+                if (event.ctrlKey || event.metaKey) {
+                    if (event.key === 'n') {
+                        event.preventDefault();
+                        showSnippetModal();
+                    } else if (event.key === 'f') {
+                        event.preventDefault();
+                        searchInput.focus();
+                    }
+                }
+                
+                if (event.key === 'Escape') {
+                    hideSnippetModal();
+                }
+            });
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
