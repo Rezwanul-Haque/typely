@@ -1,0 +1,32 @@
+[
+  {
+    "trigger": "::hello",
+    "replacement": "Hello, World!",
+    "tags": ["greeting", "basic"]
+  },
+  {
+    "trigger": "::thanks",
+    "replacement": "Thank you for your time and consideration.",
+    "tags": ["courtesy", "basic"]
+  },
+  {
+    "trigger": "::bye",
+    "replacement": "Best regards,\n{user}",
+    "tags": ["farewell", "basic"]
+  },
+  {
+    "trigger": "::addr",
+    "replacement": "123 Main Street\nAnytown, ST 12345",
+    "tags": ["contact", "address"]
+  },
+  {
+    "trigger": "::phone",
+    "replacement": "555-123-4567",
+    "tags": ["contact", "phone"]
+  },
+  {
+    "trigger": "::email",
+    "replacement": "your.email@example.com",
+    "tags": ["contact", "email"]
+  }
+]

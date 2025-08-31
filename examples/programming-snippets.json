@@ -1,0 +1,52 @@
+[
+  {
+    "trigger": "::fn-js",
+    "replacement": "function functionName() {\n    // TODO: Implementation\n    return null;\n}",
+    "tags": ["javascript", "function", "code"]
+  },
+  {
+    "trigger": "::arrow-fn",
+    "replacement": "const functionName = () => {\n    // TODO: Implementation\n};",
+    "tags": ["javascript", "arrow-function", "code"]
+  },
+  {
+    "trigger": "::try-catch",
+    "replacement": "try {\n    // Code that might throw\n} catch (error) {\n    console.error('Error:', error);\n    // Handle error\n}",
+    "tags": ["javascript", "error-handling", "code"]
+  },
+  {
+    "trigger": "::for-loop",
+    "replacement": "for (let i = 0; i < array.length; i++) {\n    // Process array[i]\n}",
+    "tags": ["javascript", "loop", "code"]
+  },
+  {
+    "trigger": "::async-fn",
+    "replacement": "async function functionName() {\n    try {\n        const result = await someAsyncOperation();\n        return result;\n    } catch (error) {\n        console.error('Error:', error);\n        throw error;\n    }\n}",
+    "tags": ["javascript", "async", "function", "code"]
+  },
+  {
+    "trigger": "::rust-fn",
+    "replacement": "fn function_name() -> Result<(), Error> {\n    // TODO: Implementation\n    Ok(())\n}",
+    "tags": ["rust", "function", "code"]
+  },
+  {
+    "trigger": "::rust-struct",
+    "replacement": "#[derive(Debug, Clone)]\npub struct StructName {\n    // fields\n}",
+    "tags": ["rust", "struct", "code"]
+  },
+  {
+    "trigger": "::todo-comment",
+    "replacement": "// TODO({user}, {date}): ",
+    "tags": ["comment", "todo", "code"]
+  },
+  {
+    "trigger": "::fixme-comment",
+    "replacement": "// FIXME({user}, {date}): ",
+    "tags": ["comment", "fixme", "code"]
+  },
+  {
+    "trigger": "::bug-report",
+    "replacement": "## Bug Report\n\n**Description:**\nA clear description of the bug\n\n**Steps to Reproduce:**\n1. \n2. \n3. \n\n**Expected Behavior:**\nWhat should happen\n\n**Actual Behavior:**\nWhat actually happened\n\n**Environment:**\n- OS: \n- Browser/Runtime: \n- Version: \n\n**Additional Context:**\nAny other relevant information",
+    "tags": ["github", "bug-report", "template"]
+  }
+]

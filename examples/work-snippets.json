@@ -1,0 +1,27 @@
+[
+  {
+    "trigger": "::sig-work",
+    "replacement": "Best regards,\n{user}\nSoftware Engineer\nYour Company Name\nemail@company.com\n+1 (555) 123-4567",
+    "tags": ["signature", "work", "email"]
+  },
+  {
+    "trigger": "::ooo",
+    "replacement": "I am currently out of office and will return on {date}.\n\nFor urgent matters, please contact:\n[Name] at [email] or [phone]\n\nI will respond to your message upon my return.\n\nThank you,\n{user}",
+    "tags": ["out-of-office", "work", "email"]
+  },
+  {
+    "trigger": "::meeting-notes",
+    "replacement": "# Meeting Notes - {date}\n\n**Attendees:** \n\n**Agenda:**\n- \n\n**Discussion:**\n- \n\n**Action Items:**\n- [ ] \n\n**Next Meeting:** ",
+    "tags": ["meeting", "notes", "work"]
+  },
+  {
+    "trigger": "::project-update",
+    "replacement": "**Project Status Update - {date}**\n\n**Project:** \n**Phase:** \n**Progress:** %\n\n**Milestones Completed:**\n- \n\n**Current Focus:**\n- \n\n**Upcoming Milestones:**\n- \n\n**Risks/Issues:**\n- \n\n**Next Steps:**\n- ",
+    "tags": ["project", "status", "work"]
+  },
+  {
+    "trigger": "::standup",
+    "replacement": "**Daily Standup - {date}**\n\n**Yesterday:**\n- \n\n**Today:**\n- \n\n**Blockers:**\n- None",
+    "tags": ["standup", "scrum", "work"]
+  }
+]

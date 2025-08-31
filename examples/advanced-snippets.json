@@ -1,0 +1,27 @@
+[
+  {
+    "trigger": "::date-today",
+    "replacement": "Today's date: {date}",
+    "tags": ["date", "dynamic"]
+  },
+  {
+    "trigger": "::timestamp",
+    "replacement": "Generated on {datetime} by {user}",
+    "tags": ["time", "dynamic"]
+  },
+  {
+    "trigger": "::meeting-request",
+    "replacement": "Hi team,\n\nI'd like to schedule a meeting for {date}.\n\nProposed agenda:\n- \n- \n- \n\nPlease let me know your availability.\n\nBest regards,\n{user}",
+    "tags": ["meeting", "template", "work"]
+  },
+  {
+    "trigger": "::status-update",
+    "replacement": "**Status Update - {date}**\n\n**Completed:**\n- \n\n**In Progress:**\n- \n\n**Upcoming:**\n- \n\n**Blockers:**\n- None\n\n- {user}",
+    "tags": ["status", "template", "work"]
+  },
+  {
+    "trigger": "::follow-up",
+    "replacement": "Hi,\n\nJust following up on our conversation from {date}.\n\nNext steps:\n- \n\nPlease let me know if you have any questions.\n\nThanks,\n{user}",
+    "tags": ["follow-up", "template", "work"]
+  }
+]
