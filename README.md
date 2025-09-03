@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="clients/gui/icons/typely_logo_full.png" alt="Typely" height="80">
+</div>
+
 # Typely
 
 **Text expansion made easy**
