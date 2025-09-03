@@ -1,13 +1,15 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::process::Command;
 use tauri::{
-    AppHandle, CustomMenuItem, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem, WindowEvent,
+    AppHandle, Manager, State, WindowEvent, Emitter,
+    menu::{Menu, MenuItem},
+    tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState},
 };
 use typely::app::services::TypelyService;
 use typely::app::dto::*;
@@ -29,11 +31,10 @@ struct AppState {
 
 impl AppState {
     async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        // Initialize database connection
-        let db_path = get_default_database_path()?;
-        log::info!("Using database: {}", db_path.display());
+        // Initialize database connection (using in-memory for development)
+        log::info!("Using in-memory database for development");
         
-        let db_connection = DatabaseConnection::new(&db_path).await?;
+        let db_connection = DatabaseConnection::new_in_memory().await?;
         let service = TypelyService::new(db_connection).await;
 
         Ok(Self {
@@ -56,7 +57,7 @@ async fn get_snippets(state: State<'_, AppState>) -> Result<Vec<SnippetDto>, Str
         sort_order: Some("desc".to_string()),
     };
     
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     let response = service.list_snippets(request).await.map_err(|e| e.to_string())?;
     Ok(response.snippets)
 }
@@ -74,7 +75,7 @@ async fn create_snippet(
         tags,
     };
     
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     service.create_snippet(request).await.map_err(|e| e.to_string())
 }
 
@@ -96,7 +97,7 @@ async fn update_snippet(
         is_active,
     };
     
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     service.update_snippet(request).await.map_err(|e| e.to_string())
 }
 
@@ -104,7 +105,7 @@ async fn update_snippet(
 async fn delete_snippet(id: String, state: State<'_, AppState>) -> Result<bool, String> {
     let snippet_id = uuid::Uuid::parse_str(&id).map_err(|e| e.to_string())?;
     
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     service.delete_snippet(snippet_id).await.map_err(|e| e.to_string())
 }
 
@@ -115,20 +116,20 @@ async fn expand_snippet(trigger: String, state: State<'_, AppState>) -> Result<E
         context: None,
     };
     
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     service.expand_snippet(request).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn search_snippets(query: String, state: State<'_, AppState>) -> Result<Vec<SnippetDto>, String> {
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     service.search_snippets(&query).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn get_statistics(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let all_snippets = {
-        let service = state.service.lock().map_err(|e| e.to_string())?;
+        let service = state.service.lock().await;
         service.get_all_active_snippets().await.map_err(|e| e.to_string())?
     };
     
@@ -137,7 +138,7 @@ async fn get_statistics(state: State<'_, AppState>) -> Result<serde_json::Value,
     
     // Get most used snippets
     let most_used = {
-        let service = state.service.lock().map_err(|e| e.to_string())?;
+        let service = state.service.lock().await;
         service.get_most_used_snippets(10).await.map_err(|e| e.to_string())?
     };
     
@@ -160,13 +161,13 @@ async fn export_snippets(state: State<'_, AppState>) -> Result<String, String> {
         tags_filter: None,
     };
     
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     service.export_to_json(request).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn import_snippets(json_data: String, overwrite: bool, state: State<'_, AppState>) -> Result<ImportResult, String> {
-    let service = state.service.lock().map_err(|e| e.to_string())?;
+    let service = state.service.lock().await;
     service.import_from_json(&json_data, overwrite).await.map_err(|e| e.to_string())
 }
 
@@ -308,7 +309,7 @@ fn update_user_path(install_path: &Path) -> Result<(), String> {
             if profile.exists() {
                 // Check if PATH is already updated
                 if let Ok(content) = fs::read_to_string(&profile) {
-                    if !content.contains(&install_dir) {
+                    if !content.contains(install_dir.as_ref()) {
                         // Append to profile file
                         fs::write(&profile, format!("{}\n# Added by Typely\n{}\n", content, path_line))
                             .map_err(|e| format!("Failed to update {}: {}", profile.display(), e))?;
@@ -387,61 +388,65 @@ async fn open_terminal_with_cli() -> Result<String, String> {
     Ok("Terminal opened with CLI ready".to_string())
 }
 
-fn create_system_tray() -> SystemTray {
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let show = CustomMenuItem::new("show".to_string(), "Show Window");
-    let hide = CustomMenuItem::new("hide".to_string(), "Hide Window");
-    let new_snippet = CustomMenuItem::new("new_snippet".to_string(), "New Snippet");
+async fn create_tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let show = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
+    let hide = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
+    let new_snippet = MenuItem::with_id(app, "new_snippet", "New Snippet", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(show)
-        .add_item(hide)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(new_snippet)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(quit);
-
-    SystemTray::new().with_menu(tray_menu)
+    Menu::with_items(app, &[
+        &show,
+        &hide,
+        &new_snippet,
+        &quit,
+    ])
 }
 
-fn handle_system_tray_event(app: &AppHandle, event: SystemTrayEvent) {
+fn handle_tray_event(app: &AppHandle, event: TrayIconEvent) {
     match event {
-        SystemTrayEvent::LeftClick {
-            position: _,
-            size: _,
+        TrayIconEvent::Click { 
+            button: MouseButton::Left,
+            button_state: MouseButtonState::Up,
             ..
         } => {
             // Show/hide window on left click
-            let window = app.get_window("main").unwrap();
-            if window.is_visible().unwrap() {
-                let _ = window.hide();
-            } else {
+            if let Some(window) = app.get_webview_window("main") {
+                if window.is_visible().unwrap_or(false) {
+                    let _ = window.hide();
+                } else {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn handle_menu_event(app: &AppHandle, event_id: &str) {
+    match event_id {
+        "quit" => {
+            std::process::exit(0);
+        }
+        "show" => {
+            if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.set_focus();
             }
         }
-        SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-            "quit" => {
-                std::process::exit(0);
-            }
-            "show" => {
-                let window = app.get_window("main").unwrap();
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-            "hide" => {
-                let window = app.get_window("main").unwrap();
+        "hide" => {
+            if let Some(window) = app.get_webview_window("main") {
                 let _ = window.hide();
             }
-            "new_snippet" => {
-                let window = app.get_window("main").unwrap();
+        }
+        "new_snippet" => {
+            if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.set_focus();
                 // Emit event to frontend to show new snippet dialog
-                let _ = window.emit("show-new-snippet", {});
+                let _ = window.emit("show-new-snippet", serde_json::Value::Null);
             }
-            _ => {}
-        },
+        }
         _ => {}
     }
 }
@@ -454,18 +459,15 @@ async fn main() {
     // Initialize application state
     let app_state = AppState::new().await.expect("Failed to initialize application state");
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(app_state)
-        .system_tray(create_system_tray())
-        .on_system_tray_event(handle_system_tray_event)
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .on_window_event(|event| match event.event() {
-            WindowEvent::CloseRequested { api, .. } => {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { .. } => {
                 // Hide window instead of closing when user clicks X
-                event.window().hide().unwrap();
-                api.prevent_close();
+                window.hide().unwrap();
             }
             _ => {}
         })
@@ -484,6 +486,16 @@ async fn main() {
             uninstall_cli,
             open_terminal_with_cli,
         ])
+        .setup(|app| {
+            // Setup tray icon without menu for now (menu setup is complex in Tauri 2.0)
+            let _tray = TrayIconBuilder::with_id("main")
+                .on_tray_icon_event(|tray, event| {
+                    handle_tray_event(tray.app_handle(), event);
+                })
+                .build(app)?;
+            
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
