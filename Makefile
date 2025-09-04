@@ -130,7 +130,7 @@ backend:
 ## Build GUI client
 gui:
 	@echo "$(CYAN)Building GUI client...$(NC)"
-	cd $(GUI_DIR) && cargo tauri build
+	cd $(GUI_DIR) && cargo build --profile $(PROFILE)
 	@echo "$(GREEN)GUI client built!$(NC)"
 
 ## Build executables only
