@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typely - Text Expansion Made Easy</title>
+    <link rel="icon" type="image/png" href="assets/typely_icon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --accent: #4a90e2;
+            --accent-hover: #357abd;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-muted: #777777;
+            --border: #2a2a3e;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 1rem 0;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo img {
+            height: 48px;
+            width: auto;
+            image-rendering: pixelated;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #5856d6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--accent), #5856d6);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(74, 144, 226, 0.1) 0%, transparent 70%);
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+            transform: translateY(-2px);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 0;
+            background: var(--bg-secondary);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            color: var(--text-primary);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .feature-card {
+            background: var(--bg-tertiary);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px var(--shadow);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent), #5856d6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+
+        /* Demo Section */
+        .demo {
+            padding: 6rem 0;
+            background: var(--bg-primary);
+        }
+
+        .demo-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-top: 4rem;
+        }
+
+        .demo-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 8px 25px var(--shadow);
+        }
+
+        .demo-header {
+            background: var(--bg-tertiary);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .demo-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .demo-dots span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .demo-dots span:first-child {
+            background: #ff5f56;
+        }
+
+        .demo-dots span:nth-child(2) {
+            background: #ffbd2e;
+        }
+
+        .demo-dots span:nth-child(3) {
+            background: #27ca3f;
+        }
+
+        .demo-title {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .demo-body {
+            padding: 2rem;
+            font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            background: var(--bg-primary);
+        }
+
+        .demo-line {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .demo-cursor {
+            color: var(--accent);
+            animation: blink 1s infinite;
+        }
+
+        .demo-text {
+            color: var(--text-primary);
+        }
+
+        .demo-text code {
+            background: var(--accent);
+            color: white;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .demo-expansion {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .demo-features {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .demo-feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .demo-icon {
+            font-size: 1.5rem;
+            background: var(--bg-tertiary);
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .demo-feature h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.125rem;
+        }
+
+        .demo-feature p {
+            color: var(--text-secondary);
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Download Section */
+        .download {
+            padding: 6rem 0;
+            text-align: center;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .download-card {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .download-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .platform-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-family: monospace;
+            text-rendering: optimizeSpeed;
+        }
+
+        .download-card h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .download-card p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-secondary);
+            padding: 3rem 0 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .copyright {
+            color: var(--text-muted);
+            margin-top: 2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero {
+                padding: 4rem 0;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .features, .download, .demo {
+                padding: 4rem 0;
+            }
+            
+            .demo-content {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-content > * {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .hero-content > *:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .hero-content > *:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">
+                <img src="assets/typely_logo_full.png" alt="Typely Logo">
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#download">Download</a></li>
+                <li><a href="https://github.com/Rezwanul-Haque/typely">GitHub</a></li>
+            </ul>
+            <a href="#download" class="cta-button">Get Started</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Type Less, Do More</h1>
+                    <p class="subtitle">
+                        Boost your productivity with intelligent text expansion. 
+                        Transform short triggers into full phrases, code snippets, and more.
+                    </p>
+                    <div class="hero-buttons">
+                        <a href="#download" class="cta-button">Download Now</a>
+                        <a href="https://github.com/Rezwanul-Haque/typely" class="btn-secondary">View on GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 class="section-title">Powerful Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Lightning Fast</h3>
+                        <p>Instant text expansion with minimal system overhead. Built with Rust for maximum performance.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔧</div>
+                        <h3>Highly Customizable</h3>
+                        <p>Create custom triggers, snippets, and expansion rules. Tailor Typely to your workflow.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌍</div>
+                        <h3>Cross-Platform</h3>
+                        <p>Works seamlessly across Windows, macOS, and Linux. One tool for all your devices.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💡</div>
+                        <h3>Smart Suggestions</h3>
+                        <p>Intelligent text completion and suggestion system learns from your usage patterns.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Privacy First</h3>
+                        <p>All data stays local. No cloud sync, no tracking, no data collection. Your privacy matters.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎨</div>
+                        <h3>Modern Interface</h3>
+                        <p>Clean, intuitive GUI and powerful CLI options. Choose the interface that works for you.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo">
+            <div class="container">
+                <h2 class="section-title">See it in Action</h2>
+                <div class="demo-content">
+                    <div class="demo-card">
+                        <div class="demo-header">
+                            <div class="demo-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <div class="demo-title">Text Editor</div>
+                        </div>
+                        <div class="demo-body">
+                            <div class="demo-line">
+                                <span class="demo-cursor">|</span>
+                                <span class="demo-text">Type: <code>sig</code> → <span class="demo-expansion">Best regards,<br>John Doe<br>Software Engineer</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="demo-features">
+                        <div class="demo-feature">
+                            <div class="demo-icon">⚡</div>
+                            <div>
+                                <h4>Instant Expansion</h4>
+                                <p>Type short triggers and watch them expand instantly</p>
+                            </div>
+                        </div>
+                        <div class="demo-feature">
+                            <div class="demo-icon">🎯</div>
+                            <div>
+                                <h4>Smart Context</h4>
+                                <p>Works in any application, anywhere you type</p>
+                            </div>
+                        </div>
+                        <div class="demo-feature">
+                            <div class="demo-icon">⚙️</div>
+                            <div>
+                                <h4>Fully Customizable</h4>
+                                <p>Create your own shortcuts and snippets</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="download" class="download">
+            <div class="container">
+                <h2 class="section-title">Download Typely</h2>
+                <p class="subtitle">Available for all major platforms</p>
+                <div class="download-grid">
+                    <div class="download-card">
+                        <div class="platform-icon">⊞</div>
+                        <h3>Windows</h3>
+                        <p>Windows 10/11 (x64)</p>
+                        <a href="https://github.com/Rezwanul-Haque/typely/releases" class="cta-button">Download</a>
+                    </div>
+                    <div class="download-card">
+                        <div class="platform-icon">⌘</div>
+                        <h3>macOS</h3>
+                        <p>macOS 10.15+ (Intel/Apple Silicon)</p>
+                        <a href="https://github.com/Rezwanul-Haque/typely/releases" class="cta-button">Download</a>
+                    </div>
+                    <div class="download-card">
+                        <div class="platform-icon">⬢</div>
+                        <h3>Linux</h3>
+                        <p>Ubuntu, Debian, Arch, Fedora</p>
+                        <a href="https://github.com/Rezwanul-Haque/typely/releases" class="cta-button">Download</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="logo">
+                    <img src="assets/typely_logo_full.png" alt="Typely Logo">
+                </div>
+                <ul class="footer-links">
+                    <li><a href="https://github.com/Rezwanul-Haque/typely">GitHub</a></li>
+                    <li><a href="https://github.com/Rezwanul-Haque/typely/issues">Issues</a></li>
+                    <li><a href="https://github.com/Rezwanul-Haque/typely/releases">Releases</a></li>
+                    <li><a href="https://github.com/Rezwanul-Haque/typely/blob/main/README.md">Documentation</a></li>
+                </ul>
+            </div>
+            <div class="copyright">
+                <p>&copy; <span id="current-year"></span> Typely. Open Source Software.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Set current year dynamically
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

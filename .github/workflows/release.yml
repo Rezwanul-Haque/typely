@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            command: cargo
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            command: cargo
+          - name: macos-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            command: cargo
+          - name: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            command: cargo
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Install system dependencies (Linux)
+        if: matrix.platform.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Build CLI
+        run: |
+          cd clients/cli
+          ${{ matrix.platform.command }} build --profile release --target ${{ matrix.platform.target }}
+
+      - name: Build GUI
+        run: |
+          cd clients/gui
+          ${{ matrix.platform.command }} build --profile release --target ${{ matrix.platform.target }}
+
+      - name: Package binaries (Linux/macOS)
+        if: matrix.platform.os != 'windows-latest'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.platform.target }}/release/typely-cli dist/
+          cp target/${{ matrix.platform.target }}/release/typely-gui dist/
+          tar -czf typely-${{ matrix.platform.name }}.tar.gz -C dist .
+
+      - name: Package binaries (Windows)
+        if: matrix.platform.os == 'windows-latest'
+        run: |
+          mkdir dist
+          copy target\${{ matrix.platform.target }}\release\typely-cli.exe dist\
+          copy target\${{ matrix.platform.target }}\release\typely-gui.exe dist\
+          powershell Compress-Archive -Path dist\* -DestinationPath typely-${{ matrix.platform.name }}.zip
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            typely-${{ matrix.platform.name }}.tar.gz
+            typely-${{ matrix.platform.name }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

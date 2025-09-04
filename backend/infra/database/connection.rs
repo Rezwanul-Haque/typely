@@ -14,7 +14,7 @@ impl DatabaseConnection {
             std::fs::create_dir_all(parent)?;
         }
 
-        let database_url = format!("sqlite:{}", database_path.display());
+        let database_url = format!("sqlite:{}?mode=rwc", database_path.display());
 
         let pool = SqlitePool::connect(&database_url).await?;
 
@@ -132,10 +132,9 @@ impl DatabaseConnection {
 }
 
 pub fn get_default_database_path() -> Result<PathBuf> {
-    let data_dir = dirs::data_dir()
-        .or_else(|| dirs::home_dir().map(|p| p.join(".local/share")))
-        .ok_or_else(|| anyhow::anyhow!("Could not determine data directory"))?;
+    let home_dir = dirs::home_dir()
+        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
 
-    let app_dir = data_dir.join("typely");
+    let app_dir = home_dir.join(".typely");
     Ok(app_dir.join("snippets.db"))
 }

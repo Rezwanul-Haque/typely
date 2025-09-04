@@ -13,7 +13,7 @@ use tauri::{
 use tokio::sync::Mutex;
 use typely::app::dto::*;
 use typely::app::services::TypelyService;
-use typely::infra::DatabaseConnection;
+use typely::infra::{DatabaseConnection, get_default_database_path};
 
 #[derive(serde::Serialize)]
 struct CliStatus {
@@ -31,10 +31,11 @@ struct AppState {
 
 impl AppState {
     async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        // Initialize database connection (using in-memory for development)
-        log::info!("Using in-memory database for development");
+        // Initialize database connection using persistent storage
+        let db_path = get_default_database_path()?;
+        log::info!("Using database: {}", db_path.display());
 
-        let db_connection = DatabaseConnection::new_in_memory().await?;
+        let db_connection = DatabaseConnection::new(&db_path).await?;
         let service = TypelyService::new(db_connection).await;
 
         Ok(Self {
