@@ -56,7 +56,7 @@ install-deps:
 			libxi-dev \
 			libxtst-dev \
 			libgtk-3-dev \
-			libwebkit2gtk-4.0-dev \
+			libwebkit2gtk-4.1-dev \
 			librsvg2-dev; \
 	elif command -v dnf >/dev/null 2>&1; then \
 		sudo dnf install -y \
@@ -88,6 +88,14 @@ install-rust:
 		export PATH="$$HOME/.cargo/bin:$$PATH"; \
 	else \
 		echo "$(GREEN)Rust already installed: $$(rustc --version)$(NC)"; \
+	fi
+	@echo "$(CYAN)Installing Tauri CLI...$(NC)"
+	@source $$HOME/.cargo/env 2>/dev/null || true; \
+	export PATH="$$HOME/.cargo/bin:$$PATH"; \
+	if ! command -v cargo-tauri >/dev/null 2>&1; then \
+		cargo install tauri-cli --locked; \
+	else \
+		echo "$(GREEN)Tauri CLI already installed$(NC)"; \
 	fi
 	@echo "$(GREEN)Rust toolchain ready!$(NC)"
 

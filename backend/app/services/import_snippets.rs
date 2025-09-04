@@ -1,4 +1,4 @@
-use crate::app::dto::{ImportSnippetsRequest, ImportResult};
+use crate::app::dto::{ImportResult, ImportSnippetsRequest};
 use crate::domain::{Snippet, SnippetRepository};
 use anyhow::Result;
 use std::sync::Arc;
@@ -19,12 +19,18 @@ impl ImportSnippetsService {
         let mut errors = Vec::new();
 
         for snippet_data in request.snippets {
-            match self.import_single_snippet(&snippet_data, request.overwrite_existing).await {
+            match self
+                .import_single_snippet(&snippet_data, request.overwrite_existing)
+                .await
+            {
                 Ok(ImportStatus::Imported) => imported_count += 1,
                 Ok(ImportStatus::Skipped) => skipped_count += 1,
                 Err(e) => {
                     error_count += 1;
-                    errors.push(format!("Failed to import '{}': {}", snippet_data.trigger, e));
+                    errors.push(format!(
+                        "Failed to import '{}': {}",
+                        snippet_data.trigger, e
+                    ));
                 }
             }
         }
@@ -43,7 +49,10 @@ impl ImportSnippetsService {
         overwrite_existing: bool,
     ) -> Result<ImportStatus> {
         // Check if snippet with trigger already exists
-        let exists = self.repository.exists_with_trigger(&snippet_data.trigger).await?;
+        let exists = self
+            .repository
+            .exists_with_trigger(&snippet_data.trigger)
+            .await?;
 
         if exists && !overwrite_existing {
             return Ok(ImportStatus::Skipped);
@@ -64,10 +73,14 @@ impl ImportSnippetsService {
 
         if exists && overwrite_existing {
             // Find existing snippet and update it
-            if let Some(existing) = self.repository.find_by_trigger(&snippet_data.trigger).await? {
+            if let Some(existing) = self
+                .repository
+                .find_by_trigger(&snippet_data.trigger)
+                .await?
+            {
                 let mut updated_snippet = existing;
                 updated_snippet.update_replacement(snippet_data.replacement.clone())?;
-                
+
                 // Update tags if provided
                 if let Some(ref tags) = snippet_data.tags {
                     updated_snippet.tags.clear();
@@ -86,10 +99,13 @@ impl ImportSnippetsService {
         Ok(ImportStatus::Imported)
     }
 
-    pub async fn import_from_json(&self, json_data: &str, overwrite_existing: bool) -> Result<ImportResult> {
-        let import_data: Vec<crate::app::dto::ImportSnippetData> = 
-            serde_json::from_str(json_data)
-                .map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
+    pub async fn import_from_json(
+        &self,
+        json_data: &str,
+        overwrite_existing: bool,
+    ) -> Result<ImportResult> {
+        let import_data: Vec<crate::app::dto::ImportSnippetData> = serde_json::from_str(json_data)
+            .map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
 
         let request = ImportSnippetsRequest {
             snippets: import_data,
@@ -109,9 +125,9 @@ enum ImportStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::dto::CreateSnippetRequest;
     use crate::app::dto::ImportSnippetData;
     use crate::app::services::CreateSnippetService;
-    use crate::app::dto::CreateSnippetRequest;
     use crate::infra::{DatabaseConnection, SqliteSnippetRepository};
     use tempfile::TempDir;
 
@@ -128,7 +144,7 @@ mod tests {
     #[tokio::test]
     async fn test_import_new_snippets() {
         let (import_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let snippets = vec![
             ImportSnippetData {
                 trigger: "::hello".to_string(),
@@ -148,7 +164,7 @@ mod tests {
         };
 
         let result = import_use_case.execute(request).await.unwrap();
-        
+
         assert_eq!(result.imported_count, 2);
         assert_eq!(result.skipped_count, 0);
         assert_eq!(result.error_count, 0);
@@ -158,7 +174,7 @@ mod tests {
     #[tokio::test]
     async fn test_import_with_existing_snippets_no_overwrite() {
         let (import_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create an existing snippet
         let existing_request = CreateSnippetRequest {
             trigger: "::hello".to_string(),
@@ -187,7 +203,7 @@ mod tests {
         };
 
         let result = import_use_case.execute(request).await.unwrap();
-        
+
         assert_eq!(result.imported_count, 1); // Only the new one
         assert_eq!(result.skipped_count, 1); // The existing one was skipped
         assert_eq!(result.error_count, 0);
@@ -196,7 +212,7 @@ mod tests {
     #[tokio::test]
     async fn test_import_with_overwrite() {
         let (import_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create an existing snippet
         let existing_request = CreateSnippetRequest {
             trigger: "::hello".to_string(),
@@ -206,13 +222,11 @@ mod tests {
         create_use_case.execute(existing_request).await.unwrap();
 
         // Import with overwrite enabled
-        let snippets = vec![
-            ImportSnippetData {
-                trigger: "::hello".to_string(),
-                replacement: "Updated Hello".to_string(),
-                tags: Some(vec!["updated".to_string()]),
-            },
-        ];
+        let snippets = vec![ImportSnippetData {
+            trigger: "::hello".to_string(),
+            replacement: "Updated Hello".to_string(),
+            tags: Some(vec!["updated".to_string()]),
+        }];
 
         let request = ImportSnippetsRequest {
             snippets,
@@ -220,7 +234,7 @@ mod tests {
         };
 
         let result = import_use_case.execute(request).await.unwrap();
-        
+
         assert_eq!(result.imported_count, 1);
         assert_eq!(result.skipped_count, 0);
         assert_eq!(result.error_count, 0);
@@ -229,7 +243,7 @@ mod tests {
     #[tokio::test]
     async fn test_import_from_json() {
         let (import_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let json_data = r#"
         [
             {
@@ -245,8 +259,11 @@ mod tests {
         ]
         "#;
 
-        let result = import_use_case.import_from_json(json_data, false).await.unwrap();
-        
+        let result = import_use_case
+            .import_from_json(json_data, false)
+            .await
+            .unwrap();
+
         assert_eq!(result.imported_count, 2);
         assert_eq!(result.error_count, 0);
     }
@@ -254,25 +271,26 @@ mod tests {
     #[tokio::test]
     async fn test_import_invalid_json() {
         let (import_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let invalid_json = "invalid json data";
         let result = import_use_case.import_from_json(invalid_json, false).await;
-        
+
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to parse JSON"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to parse JSON"));
     }
 
     #[tokio::test]
     async fn test_import_invalid_snippet() {
         let (import_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
-        let snippets = vec![
-            ImportSnippetData {
-                trigger: "".to_string(), // Invalid empty trigger
-                replacement: "Test".to_string(),
-                tags: None,
-            },
-        ];
+
+        let snippets = vec![ImportSnippetData {
+            trigger: "".to_string(), // Invalid empty trigger
+            replacement: "Test".to_string(),
+            tags: None,
+        }];
 
         let request = ImportSnippetsRequest {
             snippets,
@@ -280,7 +298,7 @@ mod tests {
         };
 
         let result = import_use_case.execute(request).await.unwrap();
-        
+
         assert_eq!(result.imported_count, 0);
         assert_eq!(result.error_count, 1);
         assert!(!result.errors.is_empty());

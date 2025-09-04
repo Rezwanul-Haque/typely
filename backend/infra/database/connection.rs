@@ -1,6 +1,6 @@
+use anyhow::Result;
 use sqlx::{Pool, Sqlite, SqlitePool};
 use std::path::{Path, PathBuf};
-use anyhow::Result;
 
 pub struct DatabaseConnection {
     pool: Pool<Sqlite>,
@@ -15,9 +15,9 @@ impl DatabaseConnection {
         }
 
         let database_url = format!("sqlite:{}", database_path.display());
-        
+
         let pool = SqlitePool::connect(&database_url).await?;
-        
+
         let connection = Self {
             pool,
             database_path: database_path.to_path_buf(),
@@ -31,7 +31,7 @@ impl DatabaseConnection {
 
     pub async fn new_in_memory() -> Result<Self> {
         let pool = SqlitePool::connect("sqlite::memory:").await?;
-        
+
         let connection = Self {
             pool,
             database_path: PathBuf::from(":memory:"),
@@ -135,7 +135,7 @@ pub fn get_default_database_path() -> Result<PathBuf> {
     let data_dir = dirs::data_dir()
         .or_else(|| dirs::home_dir().map(|p| p.join(".local/share")))
         .ok_or_else(|| anyhow::anyhow!("Could not determine data directory"))?;
-    
+
     let app_dir = data_dir.join("typely");
     Ok(app_dir.join("snippets.db"))
 }

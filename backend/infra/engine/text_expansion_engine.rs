@@ -1,21 +1,19 @@
+use crate::app::dto::ExpansionResponse;
 use crate::app::TypelyService;
-use crate::app::dto::{ExpansionRequest, ExpansionResponse};
-use crate::domain::{TriggerDetectionService, TriggerMatch};
-use crate::infra::{KeyboardMonitor, KeyboardEvent, KeyboardEventType, InputSimulator, ClipboardManager};
+use crate::domain::TriggerDetectionService;
+use crate::infra::{InputSimulator, KeyboardEvent, KeyboardEventType, KeyboardMonitor};
 use anyhow::Result;
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Receiver;
 use std::collections::VecDeque;
+use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc as tokio_mpsc;
 
 pub struct TextExpansionEngine {
-    service: Arc<TypelyService>,
     keyboard_monitor: KeyboardMonitor,
     trigger_detection: TriggerDetectionService,
     input_simulator: Arc<Mutex<InputSimulator>>,
-    clipboard_manager: Arc<Mutex<ClipboardManager>>,
     is_running: Arc<Mutex<bool>>,
     buffer: Arc<Mutex<TextBuffer>>,
     config: ExpansionConfig,
@@ -66,13 +64,6 @@ impl TextBuffer {
         self.last_update = Instant::now();
     }
 
-    fn remove_chars(&mut self, count: usize) {
-        for _ in 0..count {
-            self.content.pop_back();
-        }
-        self.last_update = Instant::now();
-    }
-
     fn get_text(&self) -> String {
         self.content.iter().collect()
     }
@@ -85,18 +76,27 @@ impl TextBuffer {
     fn is_expired(&self, timeout_ms: u64) -> bool {
         self.last_update.elapsed() > Duration::from_millis(timeout_ms)
     }
+
+    #[allow(dead_code)]
+    fn remove_chars(&mut self, count: usize) {
+        for _ in 0..count {
+            if self.content.is_empty() {
+                break;
+            }
+            self.content.pop_back();
+        }
+        self.last_update = Instant::now();
+    }
 }
 
 impl TextExpansionEngine {
-    pub fn new(service: Arc<TypelyService>, config: Option<ExpansionConfig>) -> Result<Self> {
+    pub fn new(_service: Arc<TypelyService>, config: Option<ExpansionConfig>) -> Result<Self> {
         let config = config.unwrap_or_default();
-        
+
         Ok(Self {
-            service,
             keyboard_monitor: KeyboardMonitor::new(),
             trigger_detection: TriggerDetectionService::new(),
             input_simulator: Arc::new(Mutex::new(InputSimulator::new()?)),
-            clipboard_manager: Arc::new(Mutex::new(ClipboardManager::new()?)),
             is_running: Arc::new(Mutex::new(false)),
             buffer: Arc::new(Mutex::new(TextBuffer::new(config.buffer_size))),
             config,
@@ -116,14 +116,13 @@ impl TextExpansionEngine {
 
         // Start keyboard monitoring
         let receiver = self.keyboard_monitor.start_monitoring()?;
-        
+
         // Create expansion event channel
         let (expansion_sender, mut expansion_receiver) = tokio_mpsc::channel(100);
 
         // Clone necessary data for the keyboard event processing thread
         let buffer = Arc::clone(&self.buffer);
         let trigger_detection = self.trigger_detection.clone();
-        let service = Arc::clone(&self.service);
         let config = self.config.clone();
         let is_running = Arc::clone(&self.is_running);
 
@@ -134,7 +133,6 @@ impl TextExpansionEngine {
                 receiver,
                 buffer,
                 trigger_detection,
-                service,
                 config,
                 is_running,
                 keyboard_thread_sender,
@@ -143,17 +141,17 @@ impl TextExpansionEngine {
 
         // Handle expansion events in async context
         let input_simulator = Arc::clone(&self.input_simulator);
-        let clipboard_manager = Arc::clone(&self.clipboard_manager);
         let expansion_config = self.config.clone();
-        
+
         tokio::spawn(async move {
             while let Some(expansion_event) = expansion_receiver.recv().await {
                 if let Err(e) = Self::handle_expansion_event(
                     expansion_event,
                     &input_simulator,
-                    &clipboard_manager,
                     &expansion_config,
-                ).await {
+                )
+                .await
+                {
                     log::error!("Failed to handle expansion event: {}", e);
                 }
             }
@@ -179,11 +177,11 @@ impl TextExpansionEngine {
 
     pub fn update_config(&mut self, config: ExpansionConfig) {
         self.config = config;
-        
+
         // Update buffer size if changed
         let mut buffer = self.buffer.lock().unwrap();
         buffer.max_size = self.config.buffer_size;
-        
+
         // Trim buffer if necessary
         while buffer.content.len() > buffer.max_size {
             buffer.content.pop_front();
@@ -194,7 +192,6 @@ impl TextExpansionEngine {
         receiver: Receiver<KeyboardEvent>,
         buffer: Arc<Mutex<TextBuffer>>,
         trigger_detection: TriggerDetectionService,
-        service: Arc<TypelyService>,
         config: ExpansionConfig,
         is_running: Arc<Mutex<bool>>,
         expansion_sender: tokio_mpsc::Sender<ExpansionEvent>,
@@ -222,12 +219,12 @@ impl TextExpansionEngine {
                 // Regular characters
                 key if key.len() == 1 => {
                     let c = key.chars().next().unwrap();
-                    
+
                     // Add character to buffer
                     {
                         let mut buffer = buffer.lock().unwrap();
                         buffer.add_char(c);
-                        
+
                         // Clear buffer if expired
                         if buffer.is_expired(config.trigger_timeout_ms) {
                             buffer.clear();
@@ -242,7 +239,7 @@ impl TextExpansionEngine {
                     };
 
                     let triggers = trigger_detection.find_triggers_in_text(&buffer_text);
-                    
+
                     // Process the most recent complete trigger
                     if let Some(trigger_match) = triggers.last() {
                         // Check if this trigger ends at the current position
@@ -250,11 +247,10 @@ impl TextExpansionEngine {
                             let expansion_event = ExpansionEvent {
                                 trigger: trigger_match.trigger.clone(),
                                 trigger_length: trigger_match.length(),
-                                buffer_text: buffer_text.clone(),
                             };
 
                             // Send expansion event (non-blocking)
-                            if let Err(_) = expansion_sender.try_send(expansion_event) {
+                            if expansion_sender.try_send(expansion_event).is_err() {
                                 log::warn!("Expansion event channel is full, skipping expansion");
                             }
                         }
@@ -288,17 +284,13 @@ impl TextExpansionEngine {
     async fn handle_expansion_event(
         event: ExpansionEvent,
         input_simulator: &Arc<Mutex<InputSimulator>>,
-        clipboard_manager: &Arc<Mutex<ClipboardManager>>,
         config: &ExpansionConfig,
     ) -> Result<()> {
         // Small delay to ensure the key event is processed
         tokio::time::sleep(Duration::from_millis(config.expansion_delay_ms)).await;
 
         // Try to expand the snippet
-        let expansion_request = ExpansionRequest {
-            trigger: event.trigger.clone(),
-            context: Some(event.buffer_text),
-        };
+        // TODO: Implement snippet expansion logic here
 
         // Note: This is a blocking call in an async context, which isn't ideal
         // In a real implementation, you'd want to make the service async
@@ -316,13 +308,7 @@ impl TextExpansionEngine {
         if expansion_response.success {
             if let Some(expanded_text) = expansion_response.expanded_text {
                 // Perform the text replacement
-                Self::replace_text(
-                    &event.trigger,
-                    &expanded_text,
-                    event.trigger_length,
-                    input_simulator,
-                    clipboard_manager,
-                )?;
+                Self::replace_text(&expanded_text, event.trigger_length, input_simulator)?;
 
                 log::info!("Expanded '{}' to '{}'", event.trigger, expanded_text);
             }
@@ -334,14 +320,11 @@ impl TextExpansionEngine {
     }
 
     fn replace_text(
-        trigger: &str,
         expanded_text: &str,
         trigger_length: usize,
         input_simulator: &Arc<Mutex<InputSimulator>>,
-        clipboard_manager: &Arc<Mutex<ClipboardManager>>,
     ) -> Result<()> {
-        let mut simulator = input_simulator.lock().unwrap();
-        let mut clipboard = clipboard_manager.lock().unwrap();
+        let simulator = input_simulator.lock().unwrap();
 
         // Method 1: Simple backspace and type (most compatible)
         simulator.replace_trigger_with_expansion(trigger_length, expanded_text)?;
@@ -354,7 +337,6 @@ impl TextExpansionEngine {
 struct ExpansionEvent {
     trigger: String,
     trigger_length: usize,
-    buffer_text: String,
 }
 
 impl Drop for TextExpansionEngine {
@@ -374,7 +356,7 @@ mod tests {
         let db_path = temp_dir.path().join("test.db");
         let db_connection = DatabaseConnection::new(&db_path).await.unwrap();
         let service = Arc::new(TypelyService::new(db_connection).await);
-        
+
         let config = ExpansionConfig {
             buffer_size: 50,
             trigger_timeout_ms: 500,
@@ -382,7 +364,7 @@ mod tests {
             enabled: true,
             case_sensitive: true,
         };
-        
+
         let engine = TextExpansionEngine::new(service, Some(config)).unwrap();
         (engine, temp_dir)
     }
@@ -390,25 +372,25 @@ mod tests {
     #[tokio::test]
     async fn test_text_buffer() {
         let mut buffer = TextBuffer::new(5);
-        
+
         // Test adding characters
         buffer.add_char('a');
         buffer.add_char('b');
         buffer.add_char('c');
-        
+
         assert_eq!(buffer.get_text(), "abc");
-        
+
         // Test buffer overflow
         buffer.add_char('d');
         buffer.add_char('e');
         buffer.add_char('f'); // Should remove 'a'
-        
+
         assert_eq!(buffer.get_text(), "bcdef");
-        
+
         // Test removing characters
         buffer.remove_chars(2);
         assert_eq!(buffer.get_text(), "bcd");
-        
+
         // Test clearing
         buffer.clear();
         assert_eq!(buffer.get_text(), "");
@@ -417,7 +399,7 @@ mod tests {
     #[test]
     fn test_expansion_config() {
         let config = ExpansionConfig::default();
-        
+
         assert_eq!(config.buffer_size, 100);
         assert_eq!(config.trigger_timeout_ms, 1000);
         assert_eq!(config.expansion_delay_ms, 50);

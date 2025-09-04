@@ -27,8 +27,8 @@ impl GetSnippetService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::services::CreateSnippetService;
     use crate::app::dto::CreateSnippetRequest;
+    use crate::app::services::CreateSnippetService;
     use crate::infra::{DatabaseConnection, SqliteSnippetRepository};
     use tempfile::TempDir;
 
@@ -45,7 +45,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_snippet_by_id() {
         let (get_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a snippet first
         let create_request = CreateSnippetRequest {
             trigger: "::test".to_string(),
@@ -56,7 +56,7 @@ mod tests {
 
         // Get the snippet by ID
         let found = get_use_case.execute(created.id).await.unwrap();
-        
+
         assert!(found.is_some());
         let snippet = found.unwrap();
         assert_eq!(snippet.id, created.id);
@@ -67,7 +67,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_snippet_by_trigger() {
         let (get_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a snippet first
         let create_request = CreateSnippetRequest {
             trigger: "::hello".to_string(),
@@ -78,7 +78,7 @@ mod tests {
 
         // Get the snippet by trigger
         let found = get_use_case.execute_by_trigger("::hello").await.unwrap();
-        
+
         assert!(found.is_some());
         let snippet = found.unwrap();
         assert_eq!(snippet.id, created.id);
@@ -89,13 +89,16 @@ mod tests {
     #[tokio::test]
     async fn test_get_nonexistent_snippet() {
         let (get_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Try to get a nonexistent snippet by ID
         let found = get_use_case.execute(Uuid::new_v4()).await.unwrap();
         assert!(found.is_none());
 
         // Try to get a nonexistent snippet by trigger
-        let found = get_use_case.execute_by_trigger("::nonexistent").await.unwrap();
+        let found = get_use_case
+            .execute_by_trigger("::nonexistent")
+            .await
+            .unwrap();
         assert!(found.is_none());
     }
 }

@@ -81,7 +81,11 @@ impl ExpansionService {
     }
 
     /// Expand a snippet (used by expand_snippet service)
-    pub fn expand_snippet(&self, snippet: &crate::domain::Snippet, _context: &ExpansionContext) -> ExpansionResult {
+    pub fn expand_snippet(
+        &self,
+        snippet: &crate::domain::Snippet,
+        _context: &ExpansionContext,
+    ) -> ExpansionResult {
         let expanded = self.process_placeholders(&snippet.replacement);
         ExpansionResult::success(snippet.replacement.clone(), expanded)
     }
@@ -91,7 +95,7 @@ impl ExpansionService {
         let mut matches = Vec::new();
         let words: Vec<&str> = text.split_whitespace().collect();
         let mut pos = 0;
-        
+
         for word in words {
             if let Some(word_pos) = text[pos..].find(word) {
                 let absolute_pos = pos + word_pos;
@@ -111,18 +115,18 @@ impl ExpansionService {
     fn process_placeholders(&self, text: &str) -> String {
         let mut result = text.to_string();
         let now = chrono::Utc::now();
-        
+
         // Date/time placeholders
         result = result.replace("{date}", &now.format("%Y-%m-%d").to_string());
         result = result.replace("{time}", &now.format("%H:%M:%S").to_string());
         result = result.replace("{datetime}", &now.format("%Y-%m-%d %H:%M:%S").to_string());
         result = result.replace("{timestamp}", &now.timestamp().to_string());
-        
+
         // User info placeholders (simplified for CLI)
         if let Ok(username) = std::env::var("USER") {
             result = result.replace("{user}", &username);
         }
-        
+
         result
     }
 }

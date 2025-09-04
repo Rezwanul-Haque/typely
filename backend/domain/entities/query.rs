@@ -94,30 +94,20 @@ impl SnippetQuery {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SortBy {
     Trigger,
     CreatedAt,
+    #[default]
     UpdatedAt,
     UsageCount,
 }
 
-impl Default for SortBy {
-    fn default() -> Self {
-        SortBy::UpdatedAt
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SortOrder {
     Asc,
+    #[default]
     Desc,
-}
-
-impl Default for SortOrder {
-    fn default() -> Self {
-        SortOrder::Desc
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

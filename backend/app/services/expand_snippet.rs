@@ -1,5 +1,5 @@
 use crate::app::dto::{ExpansionRequest, ExpansionResponse};
-use crate::domain::{SnippetRepository, ExpansionService, ExpansionContext, DomainEvent};
+use crate::domain::{DomainEvent, ExpansionContext, ExpansionService, SnippetRepository};
 use anyhow::Result;
 use std::sync::Arc;
 
@@ -24,7 +24,10 @@ impl ExpandSnippetService {
                 return Ok(ExpansionResponse {
                     success: false,
                     expanded_text: None,
-                    error_message: Some(format!("No snippet found for trigger: {}", request.trigger)),
+                    error_message: Some(format!(
+                        "No snippet found for trigger: {}",
+                        request.trigger
+                    )),
                 });
             }
         };
@@ -52,7 +55,7 @@ impl ExpandSnippetService {
             // Update usage count
             let mut updated_snippet = snippet;
             updated_snippet.increment_usage();
-            
+
             // Save the updated snippet
             if let Err(e) = self.repository.update(&updated_snippet).await {
                 log::warn!("Failed to update snippet usage count: {}", e);
@@ -85,7 +88,11 @@ impl ExpandSnippetService {
         let mut matching_triggers = Vec::new();
 
         for trigger_match in triggers {
-            if self.repository.exists_with_trigger(&trigger_match.trigger).await? {
+            if self
+                .repository
+                .exists_with_trigger(&trigger_match.trigger)
+                .await?
+            {
                 matching_triggers.push(trigger_match.trigger);
             }
         }
@@ -97,8 +104,8 @@ impl ExpandSnippetService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::services::CreateSnippetService;
     use crate::app::dto::CreateSnippetRequest;
+    use crate::app::services::CreateSnippetService;
     use crate::infra::{DatabaseConnection, SqliteSnippetRepository};
     use tempfile::TempDir;
 
@@ -115,7 +122,7 @@ mod tests {
     #[tokio::test]
     async fn test_expand_existing_snippet() {
         let (expand_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a snippet first
         let create_request = CreateSnippetRequest {
             trigger: "::hello".to_string(),
@@ -129,9 +136,9 @@ mod tests {
             trigger: "::hello".to_string(),
             context: None,
         };
-        
+
         let response = expand_use_case.execute(expansion_request).await.unwrap();
-        
+
         assert!(response.success);
         assert!(response.expanded_text.is_some());
         assert_eq!(response.expanded_text.unwrap(), "Hello, World!");
@@ -141,14 +148,14 @@ mod tests {
     #[tokio::test]
     async fn test_expand_nonexistent_snippet() {
         let (expand_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let expansion_request = ExpansionRequest {
             trigger: "::nonexistent".to_string(),
             context: None,
         };
-        
+
         let response = expand_use_case.execute(expansion_request).await.unwrap();
-        
+
         assert!(!response.success);
         assert!(response.expanded_text.is_none());
         assert!(response.error_message.is_some());
@@ -158,7 +165,7 @@ mod tests {
     #[tokio::test]
     async fn test_expand_inactive_snippet() {
         let (expand_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a snippet first
         let create_request = CreateSnippetRequest {
             trigger: "::test".to_string(),
@@ -169,14 +176,14 @@ mod tests {
 
         // Deactivate the snippet (this would normally be done through UpdateSnippetService)
         // For this test, we'll assume the snippet is deactivated
-        
+
         let expansion_request = ExpansionRequest {
             trigger: "::test".to_string(),
             context: None,
         };
-        
+
         let response = expand_use_case.execute(expansion_request).await.unwrap();
-        
+
         // Should succeed because our test snippet is still active
         // In a real scenario, we'd update the snippet to be inactive first
         assert!(response.success);
@@ -185,7 +192,7 @@ mod tests {
     #[tokio::test]
     async fn test_find_matching_snippets() {
         let (expand_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create multiple snippets
         let snippets = vec![
             ("::hello", "Hello, World!"),
@@ -205,7 +212,7 @@ mod tests {
         // Test text containing multiple triggers
         let text = "Say ::hello and ::test but not ::nonexistent";
         let matching = expand_use_case.find_matching_snippets(text).await.unwrap();
-        
+
         assert_eq!(matching.len(), 2);
         assert!(matching.contains(&"::hello".to_string()));
         assert!(matching.contains(&"::test".to_string()));

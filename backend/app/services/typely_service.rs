@@ -1,5 +1,5 @@
-use crate::app::services::*;
 use crate::app::dto::*;
+use crate::app::services::*;
 use crate::domain::repositories::SnippetRepository;
 use crate::infra::{DatabaseConnection, SqliteSnippetRepository};
 use anyhow::Result;
@@ -20,9 +20,9 @@ pub struct TypelyService {
 
 impl TypelyService {
     pub async fn new(database_connection: DatabaseConnection) -> Self {
-        let repository: Arc<dyn SnippetRepository> = Arc::new(
-            SqliteSnippetRepository::new(database_connection.pool().clone())
-        );
+        let repository: Arc<dyn SnippetRepository> = Arc::new(SqliteSnippetRepository::new(
+            database_connection.pool().clone(),
+        ));
 
         Self {
             create_snippet: CreateSnippetService::new(repository.clone()),
@@ -74,10 +74,15 @@ impl TypelyService {
     }
 
     pub async fn import_from_json(&self, json_data: &str, overwrite: bool) -> Result<ImportResult> {
-        self.import_snippets.import_from_json(json_data, overwrite).await
+        self.import_snippets
+            .import_from_json(json_data, overwrite)
+            .await
     }
 
-    pub async fn export_snippets(&self, request: ExportSnippetsRequest) -> Result<Vec<ImportSnippetData>> {
+    pub async fn export_snippets(
+        &self,
+        request: ExportSnippetsRequest,
+    ) -> Result<Vec<ImportSnippetData>> {
         self.export_snippets.execute(request).await
     }
 
@@ -100,7 +105,7 @@ impl TypelyService {
             sort_by: Some("updated".to_string()),
             sort_order: Some("desc".to_string()),
         };
-        
+
         let response = self.list_snippets(request).await?;
         Ok(response.snippets)
     }
@@ -115,7 +120,7 @@ impl TypelyService {
             sort_by: Some("usage".to_string()),
             sort_order: Some("desc".to_string()),
         };
-        
+
         let response = self.list_snippets(request).await?;
         Ok(response.snippets)
     }
@@ -130,7 +135,7 @@ impl TypelyService {
             sort_by: Some("updated".to_string()),
             sort_order: Some("desc".to_string()),
         };
-        
+
         let response = self.list_snippets(request).await?;
         Ok(response.snippets)
     }
@@ -145,7 +150,7 @@ impl TypelyService {
             sort_by: Some("usage".to_string()),
             sort_order: Some("desc".to_string()),
         };
-        
+
         let response = self.list_snippets(request).await?;
         Ok(response.snippets)
     }
@@ -160,7 +165,7 @@ impl TypelyService {
             sort_by: Some("updated".to_string()),
             sort_order: Some("desc".to_string()),
         };
-        
+
         let response = self.list_snippets(request).await?;
         Ok(response.snippets)
     }
@@ -173,7 +178,7 @@ impl TypelyService {
             tags: None,
             is_active: Some(true),
         };
-        
+
         self.update_snippet(request).await
     }
 
@@ -185,7 +190,7 @@ impl TypelyService {
             tags: None,
             is_active: Some(false),
         };
-        
+
         self.update_snippet(request).await
     }
 }
@@ -207,21 +212,21 @@ mod tests {
     #[tokio::test]
     async fn test_service_integration() {
         let (service, _temp_dir) = create_test_service().await;
-        
+
         // Create a snippet
         let create_request = CreateSnippetRequest {
             trigger: "::hello".to_string(),
             replacement: "Hello, World!".to_string(),
             tags: Some(vec!["greeting".to_string()]),
         };
-        
+
         let created = service.create_snippet(create_request).await.unwrap();
         assert_eq!(created.trigger, "::hello");
-        
+
         // Get the snippet
         let found = service.get_snippet(created.id).await.unwrap();
         assert!(found.is_some());
-        
+
         // List snippets
         let list_request = SnippetListRequest {
             search_term: None,
@@ -232,20 +237,20 @@ mod tests {
             sort_by: None,
             sort_order: None,
         };
-        
+
         let list_response = service.list_snippets(list_request).await.unwrap();
         assert_eq!(list_response.snippets.len(), 1);
-        
+
         // Expand snippet
         let expansion_request = ExpansionRequest {
             trigger: "::hello".to_string(),
             context: None,
         };
-        
+
         let expansion_response = service.expand_snippet(expansion_request).await.unwrap();
         assert!(expansion_response.success);
         assert_eq!(expansion_response.expanded_text.unwrap(), "Hello, World!");
-        
+
         // Delete snippet
         let deleted = service.delete_snippet(created.id).await.unwrap();
         assert!(deleted);
@@ -254,7 +259,7 @@ mod tests {
     #[tokio::test]
     async fn test_convenience_methods() {
         let (service, _temp_dir) = create_test_service().await;
-        
+
         // Create some test snippets
         for i in 1..=3 {
             let request = CreateSnippetRequest {
@@ -264,15 +269,15 @@ mod tests {
             };
             service.create_snippet(request).await.unwrap();
         }
-        
+
         // Test get all active snippets
         let active_snippets = service.get_all_active_snippets().await.unwrap();
         assert_eq!(active_snippets.len(), 3);
-        
+
         // Test search snippets
         let search_results = service.search_snippets("Test").await.unwrap();
         assert_eq!(search_results.len(), 3);
-        
+
         // Test get snippets by tag
         let tagged_snippets = service.get_snippets_by_tag("test").await.unwrap();
         assert_eq!(tagged_snippets.len(), 3);

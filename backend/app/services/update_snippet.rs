@@ -1,5 +1,5 @@
-use crate::app::dto::{UpdateSnippetRequest, SnippetDto};
-use crate::domain::{SnippetRepository, DomainEvent};
+use crate::app::dto::{SnippetDto, UpdateSnippetRequest};
+use crate::domain::{DomainEvent, SnippetRepository};
 use anyhow::Result;
 use std::sync::Arc;
 
@@ -14,7 +14,10 @@ impl UpdateSnippetService {
 
     pub async fn execute(&self, request: UpdateSnippetRequest) -> Result<SnippetDto> {
         // Find the existing snippet
-        let mut snippet = self.repository.find_by_id(&request.id).await?
+        let mut snippet = self
+            .repository
+            .find_by_id(&request.id)
+            .await?
             .ok_or_else(|| anyhow::anyhow!("Snippet not found"))?;
 
         // Update trigger if provided
@@ -22,7 +25,10 @@ impl UpdateSnippetService {
             if new_trigger != snippet.trigger {
                 // Check if the new trigger already exists
                 if self.repository.exists_with_trigger(&new_trigger).await? {
-                    return Err(anyhow::anyhow!("A snippet with trigger '{}' already exists", new_trigger));
+                    return Err(anyhow::anyhow!(
+                        "A snippet with trigger '{}' already exists",
+                        new_trigger
+                    ));
                 }
                 snippet.update_trigger(new_trigger)?;
             }
@@ -69,8 +75,8 @@ impl UpdateSnippetService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::services::CreateSnippetService;
     use crate::app::dto::CreateSnippetRequest;
+    use crate::app::services::CreateSnippetService;
     use crate::infra::{DatabaseConnection, SqliteSnippetRepository};
     use tempfile::TempDir;
 
@@ -87,7 +93,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_snippet_replacement() {
         let (update_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a snippet first
         let create_request = CreateSnippetRequest {
             trigger: "::test".to_string(),
@@ -104,9 +110,9 @@ mod tests {
             tags: None,
             is_active: None,
         };
-        
+
         let updated = update_use_case.execute(update_request).await.unwrap();
-        
+
         assert_eq!(updated.replacement, "Updated replacement");
         assert_eq!(updated.trigger, "::test"); // Should remain unchanged
     }
@@ -114,7 +120,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_snippet_trigger() {
         let (update_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a snippet first
         let create_request = CreateSnippetRequest {
             trigger: "::old".to_string(),
@@ -131,9 +137,9 @@ mod tests {
             tags: None,
             is_active: None,
         };
-        
+
         let updated = update_use_case.execute(update_request).await.unwrap();
-        
+
         assert_eq!(updated.trigger, "::new");
         assert_eq!(updated.replacement, "Test"); // Should remain unchanged
     }
@@ -141,7 +147,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_snippet_deactivate() {
         let (update_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a snippet first
         let create_request = CreateSnippetRequest {
             trigger: "::test".to_string(),
@@ -159,7 +165,7 @@ mod tests {
             tags: None,
             is_active: Some(false),
         };
-        
+
         let updated = update_use_case.execute(update_request).await.unwrap();
         assert!(!updated.is_active);
     }
@@ -167,7 +173,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_nonexistent_snippet() {
         let (update_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let update_request = UpdateSnippetRequest {
             id: uuid::Uuid::new_v4(),
             trigger: None,
@@ -175,7 +181,7 @@ mod tests {
             tags: None,
             is_active: None,
         };
-        
+
         let result = update_use_case.execute(update_request).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));

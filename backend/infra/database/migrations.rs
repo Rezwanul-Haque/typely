@@ -1,5 +1,5 @@
-use sqlx::{Pool, Sqlite};
 use anyhow::Result;
+use sqlx::{Pool, Sqlite};
 
 pub struct MigrationRunner {
     pool: Pool<Sqlite>,
@@ -40,12 +40,11 @@ impl MigrationRunner {
 
     async fn check_and_record_migration(&self, name: &str) -> Result<bool> {
         // Check if migration has already been applied
-        let existing = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM migrations WHERE name = ?",
-        )
-        .bind(name)
-        .fetch_one(&self.pool)
-        .await?;
+        let existing =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM migrations WHERE name = ?")
+                .bind(name)
+                .fetch_one(&self.pool)
+                .await?;
 
         if existing > 0 {
             return Ok(false); // Already applied
@@ -55,19 +54,20 @@ impl MigrationRunner {
     }
 
     async fn record_migration(&self, name: &str) -> Result<()> {
-        sqlx::query(
-            "INSERT INTO migrations (name, applied_at) VALUES (?, datetime('now'))",
-        )
-        .bind(name)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("INSERT INTO migrations (name, applied_at) VALUES (?, datetime('now'))")
+            .bind(name)
+            .execute(&self.pool)
+            .await?;
 
         log::info!("Applied migration: {}", name);
         Ok(())
     }
 
     async fn apply_migration_001(&self) -> Result<()> {
-        if !self.check_and_record_migration("001_create_snippets").await? {
+        if !self
+            .check_and_record_migration("001_create_snippets")
+            .await?
+        {
             return Ok(());
         }
 

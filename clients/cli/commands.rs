@@ -4,7 +4,6 @@ use crate::args::{TypelyCommand, TypelyArgs};
 use anyhow::Result;
 use console::{style, Term};
 use std::fs;
-use uuid::Uuid;
 
 pub struct TypelyCliHandler {
     service: TypelyService,
@@ -31,7 +30,7 @@ impl TypelyCliHandler {
                 self.handle_list(search, active, inactive, tags, limit, sort, order, verbose).await
             }
             TypelyCommand::Show { trigger } => {
-                self.handle_show(trigger, verbose).await
+                self.handle_show(trigger).await
             }
             TypelyCommand::Update { trigger, replacement, new_trigger, tags, activate, deactivate } => {
                 self.handle_update(trigger, replacement, new_trigger, tags, activate, deactivate, verbose).await
@@ -43,7 +42,7 @@ impl TypelyCliHandler {
                 self.handle_export(file, inactive, tags, verbose).await
             }
             TypelyCommand::Expand { trigger } => {
-                self.handle_expand(trigger, verbose).await
+                self.handle_expand(trigger).await
             }
             TypelyCommand::Search { query, limit } => {
                 self.handle_search(query, limit, verbose).await
@@ -153,7 +152,7 @@ impl TypelyCliHandler {
         Ok(())
     }
 
-    async fn handle_show(&self, trigger: String, verbose: bool) -> Result<()> {
+    async fn handle_show(&self, trigger: String) -> Result<()> {
         match self.service.get_snippet_by_trigger(&trigger).await? {
             Some(snippet) => {
                 self.print_snippet_details(&snippet)?;
@@ -277,7 +276,7 @@ impl TypelyCliHandler {
         Ok(())
     }
 
-    async fn handle_expand(&self, trigger: String, verbose: bool) -> Result<()> {
+    async fn handle_expand(&self, trigger: String) -> Result<()> {
         let request = ExpansionRequest {
             trigger: trigger.clone(),
             context: None,

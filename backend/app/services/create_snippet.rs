@@ -1,5 +1,5 @@
 use crate::app::dto::{CreateSnippetRequest, SnippetDto};
-use crate::domain::{Snippet, SnippetRepository, DomainEvent};
+use crate::domain::{DomainEvent, Snippet, SnippetRepository};
 use anyhow::Result;
 use std::sync::Arc;
 
@@ -14,8 +14,15 @@ impl CreateSnippetService {
 
     pub async fn execute(&self, request: CreateSnippetRequest) -> Result<SnippetDto> {
         // Validate that the trigger doesn't already exist
-        if self.repository.exists_with_trigger(&request.trigger).await? {
-            return Err(anyhow::anyhow!("A snippet with trigger '{}' already exists", request.trigger));
+        if self
+            .repository
+            .exists_with_trigger(&request.trigger)
+            .await?
+        {
+            return Err(anyhow::anyhow!(
+                "A snippet with trigger '{}' already exists",
+                request.trigger
+            ));
         }
 
         // Create the snippet
@@ -61,7 +68,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_snippet_success() {
         let (use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let request = CreateSnippetRequest {
             trigger: "::hello".to_string(),
             replacement: "Hello, World!".to_string(),
@@ -69,7 +76,7 @@ mod tests {
         };
 
         let result = use_case.execute(request).await.unwrap();
-        
+
         assert_eq!(result.trigger, "::hello");
         assert_eq!(result.replacement, "Hello, World!");
         assert!(result.tags.contains(&"greeting".to_string()));
@@ -80,7 +87,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_snippet_duplicate_trigger() {
         let (use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let request1 = CreateSnippetRequest {
             trigger: "::test".to_string(),
             replacement: "First".to_string(),
@@ -106,7 +113,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_snippet_invalid_trigger() {
         let (use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let request = CreateSnippetRequest {
             trigger: "".to_string(), // Empty trigger
             replacement: "Test".to_string(),

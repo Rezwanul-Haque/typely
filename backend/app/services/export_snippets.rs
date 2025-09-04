@@ -1,5 +1,5 @@
 use crate::app::dto::{ExportSnippetsRequest, ImportSnippetData};
-use crate::domain::{SnippetRepository, SnippetQuery};
+use crate::domain::{SnippetQuery, SnippetRepository};
 use anyhow::Result;
 use std::sync::Arc;
 
@@ -15,26 +15,26 @@ impl ExportSnippetsService {
     pub async fn execute(&self, request: ExportSnippetsRequest) -> Result<Vec<ImportSnippetData>> {
         // Build query based on request
         let mut query = SnippetQuery::new();
-        
+
         // Set active filter
         if request.include_inactive {
             query = query.with_all();
         } else {
             query = query.with_active_only();
         }
-        
+
         // Apply tags filter if provided
         if let Some(tags_filter) = request.tags_filter {
             query = query.with_tags(tags_filter);
         }
-        
+
         // Remove pagination to get all matching snippets
         query.limit = None;
         query.offset = None;
-        
+
         // Get all matching snippets
         let snippets = self.repository.find_all(&query).await?;
-        
+
         // Convert to export format
         let export_data: Vec<ImportSnippetData> = snippets
             .into_iter()
@@ -48,16 +48,16 @@ impl ExportSnippetsService {
                 },
             })
             .collect();
-        
+
         Ok(export_data)
     }
 
     pub async fn export_to_json(&self, request: ExportSnippetsRequest) -> Result<String> {
         let export_data = self.execute(request).await?;
-        
+
         let json = serde_json::to_string_pretty(&export_data)
             .map_err(|e| anyhow::anyhow!("Failed to serialize to JSON: {}", e))?;
-        
+
         Ok(json)
     }
 
@@ -66,7 +66,7 @@ impl ExportSnippetsService {
             include_inactive: true,
             tags_filter: None,
         };
-        
+
         self.export_to_json(request).await
     }
 
@@ -75,16 +75,20 @@ impl ExportSnippetsService {
             include_inactive: false,
             tags_filter: None,
         };
-        
+
         self.export_to_json(request).await
     }
 
-    pub async fn export_by_tags_to_json(&self, tags: Vec<String>, include_inactive: bool) -> Result<String> {
+    pub async fn export_by_tags_to_json(
+        &self,
+        tags: Vec<String>,
+        include_inactive: bool,
+    ) -> Result<String> {
         let request = ExportSnippetsRequest {
             include_inactive,
             tags_filter: Some(tags),
         };
-        
+
         self.export_to_json(request).await
     }
 }
@@ -92,8 +96,8 @@ impl ExportSnippetsService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::services::CreateSnippetService;
     use crate::app::dto::CreateSnippetRequest;
+    use crate::app::services::CreateSnippetService;
     use crate::infra::{DatabaseConnection, SqliteSnippetRepository};
     use tempfile::TempDir;
 
@@ -110,12 +114,12 @@ mod tests {
     #[tokio::test]
     async fn test_export_empty_database() {
         let (export_use_case, _create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         let request = ExportSnippetsRequest {
             include_inactive: true,
             tags_filter: None,
         };
-        
+
         let result = export_use_case.execute(request).await.unwrap();
         assert!(result.is_empty());
     }
@@ -123,10 +127,14 @@ mod tests {
     #[tokio::test]
     async fn test_export_all_snippets() {
         let (export_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create test snippets
         let snippets_data = vec![
-            ("::hello", "Hello, World!", Some(vec!["greeting".to_string()])),
+            (
+                "::hello",
+                "Hello, World!",
+                Some(vec!["greeting".to_string()]),
+            ),
             ("::test", "This is a test", Some(vec!["test".to_string()])),
             ("::bye", "Goodbye!", None),
         ];
@@ -144,11 +152,11 @@ mod tests {
             include_inactive: true,
             tags_filter: None,
         };
-        
+
         let result = export_use_case.execute(export_request).await.unwrap();
-        
+
         assert_eq!(result.len(), 3);
-        
+
         // Verify exported data
         let triggers: Vec<String> = result.iter().map(|s| s.trigger.clone()).collect();
         assert!(triggers.contains(&"::hello".to_string()));
@@ -159,7 +167,7 @@ mod tests {
     #[tokio::test]
     async fn test_export_to_json() {
         let (export_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a test snippet
         let request = CreateSnippetRequest {
             trigger: "::json".to_string(),
@@ -172,21 +180,28 @@ mod tests {
             include_inactive: true,
             tags_filter: None,
         };
-        
-        let json_result = export_use_case.export_to_json(export_request).await.unwrap();
-        
+
+        let json_result = export_use_case
+            .export_to_json(export_request)
+            .await
+            .unwrap();
+
         // Verify it's valid JSON
         let parsed: Vec<ImportSnippetData> = serde_json::from_str(&json_result).unwrap();
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0].trigger, "::json");
         assert_eq!(parsed[0].replacement, "JSON test");
-        assert!(parsed[0].tags.as_ref().unwrap().contains(&"json".to_string()));
+        assert!(parsed[0]
+            .tags
+            .as_ref()
+            .unwrap()
+            .contains(&"json".to_string()));
     }
 
     #[tokio::test]
     async fn test_export_active_only() {
         let (export_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create active snippets (all snippets are active by default)
         let request1 = CreateSnippetRequest {
             trigger: "::active1".to_string(),
@@ -198,13 +213,13 @@ mod tests {
             replacement: "Active 2".to_string(),
             tags: None,
         };
-        
+
         create_use_case.execute(request1).await.unwrap();
         create_use_case.execute(request2).await.unwrap();
 
         // Export active only
         let json_result = export_use_case.export_active_to_json().await.unwrap();
-        
+
         let parsed: Vec<ImportSnippetData> = serde_json::from_str(&json_result).unwrap();
         assert_eq!(parsed.len(), 2);
     }
@@ -212,7 +227,7 @@ mod tests {
     #[tokio::test]
     async fn test_export_all_to_json() {
         let (export_use_case, create_use_case, _temp_dir) = create_test_use_case().await;
-        
+
         // Create a test snippet
         let request = CreateSnippetRequest {
             trigger: "::all".to_string(),
@@ -222,7 +237,7 @@ mod tests {
         create_use_case.execute(request).await.unwrap();
 
         let json_result = export_use_case.export_all_to_json().await.unwrap();
-        
+
         let parsed: Vec<ImportSnippetData> = serde_json::from_str(&json_result).unwrap();
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0].trigger, "::all");

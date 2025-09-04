@@ -18,7 +18,7 @@ impl Snippet {
     pub fn new(trigger: String, replacement: String) -> anyhow::Result<Self> {
         Self::validate_trigger(&trigger)?;
         Self::validate_replacement(&replacement)?;
-        
+
         let now = Utc::now();
         Ok(Self {
             id: Uuid::new_v4(),
@@ -41,7 +41,7 @@ impl Snippet {
     ) -> anyhow::Result<Self> {
         Self::validate_trigger(&trigger)?;
         Self::validate_replacement(&replacement)?;
-        
+
         Ok(Self {
             id,
             trigger,
@@ -103,14 +103,19 @@ impl Snippet {
         }
 
         if trigger.len() > 50 {
-            return Err(anyhow::anyhow!("Trigger cannot be longer than 50 characters"));
+            return Err(anyhow::anyhow!(
+                "Trigger cannot be longer than 50 characters"
+            ));
         }
 
         if trigger.contains(' ') {
             return Err(anyhow::anyhow!("Trigger cannot contain spaces"));
         }
 
-        if !trigger.chars().all(|c| c.is_ascii_alphanumeric() || ":_-".contains(c)) {
+        if !trigger
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || ":_-".contains(c))
+        {
             return Err(anyhow::anyhow!("Trigger can only contain alphanumeric characters, colons, underscores, and hyphens"));
         }
 
@@ -123,7 +128,9 @@ impl Snippet {
         }
 
         if replacement.len() > 10000 {
-            return Err(anyhow::anyhow!("Replacement cannot be longer than 10000 characters"));
+            return Err(anyhow::anyhow!(
+                "Replacement cannot be longer than 10000 characters"
+            ));
         }
 
         Ok(())
@@ -131,21 +138,21 @@ impl Snippet {
 
     pub fn expand(&self) -> String {
         let mut result = self.replacement.clone();
-        
+
         // Handle dynamic placeholders
         let now = Utc::now();
-        
+
         // Date/time placeholders
         result = result.replace("{date}", &now.format("%Y-%m-%d").to_string());
         result = result.replace("{time}", &now.format("%H:%M:%S").to_string());
         result = result.replace("{datetime}", &now.format("%Y-%m-%d %H:%M:%S").to_string());
         result = result.replace("{timestamp}", &now.timestamp().to_string());
-        
+
         // User info placeholders (simplified for now)
         if let Ok(username) = std::env::var("USER") {
             result = result.replace("{user}", &username);
         }
-        
+
         result
     }
 }
@@ -185,7 +192,7 @@ mod tests {
     fn test_update_operations() {
         let mut snippet = Snippet::new("::test".to_string(), "Original".to_string()).unwrap();
         let original_time = snippet.updated_at;
-        
+
         std::thread::sleep(std::time::Duration::from_millis(1));
         snippet.update_replacement("Updated".to_string()).unwrap();
         assert_eq!(snippet.replacement, "Updated");
@@ -196,7 +203,7 @@ mod tests {
     fn test_usage_increment() {
         let mut snippet = Snippet::new("::test".to_string(), "Test".to_string()).unwrap();
         assert_eq!(snippet.usage_count, 0);
-        
+
         snippet.increment_usage();
         assert_eq!(snippet.usage_count, 1);
     }
@@ -204,13 +211,13 @@ mod tests {
     #[test]
     fn test_tag_management() {
         let mut snippet = Snippet::new("::test".to_string(), "Test".to_string()).unwrap();
-        
+
         snippet.add_tag("work".to_string());
         assert!(snippet.tags.contains(&"work".to_string()));
-        
+
         snippet.add_tag("work".to_string()); // Duplicate should not be added
         assert_eq!(snippet.tags.len(), 1);
-        
+
         snippet.remove_tag("work");
         assert!(!snippet.tags.contains(&"work".to_string()));
     }

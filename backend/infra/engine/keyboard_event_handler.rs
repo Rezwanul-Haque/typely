@@ -44,13 +44,13 @@ impl KeyboardEventHandler {
 
     pub fn process_event(&mut self, event: KeyboardEvent) -> Option<ProcessedKeyEvent> {
         self.last_activity = Instant::now();
-        
+
         // Update key state
         self.update_key_state(&event);
-        
+
         // Update modifier state
         self.update_modifier_state(&event);
-        
+
         // Create processed event
         let processed = ProcessedKeyEvent {
             key: event.key.clone(),
@@ -60,7 +60,7 @@ impl KeyboardEventHandler {
             is_printable: self.is_printable_key(&event.key),
             should_buffer: self.should_buffer_key(&event),
         };
-        
+
         Some(processed)
     }
 
@@ -86,11 +86,14 @@ impl KeyboardEventHandler {
     }
 
     fn update_key_state(&mut self, event: &KeyboardEvent) {
-        let key_state = self.key_states.entry(event.key.clone()).or_insert(KeyState {
-            is_pressed: false,
-            press_time: Instant::now(),
-            release_time: None,
-        });
+        let key_state = self
+            .key_states
+            .entry(event.key.clone())
+            .or_insert(KeyState {
+                is_pressed: false,
+                press_time: Instant::now(),
+                release_time: None,
+            });
 
         match event.event_type {
             KeyboardEventType::KeyDown => {
@@ -134,8 +137,14 @@ impl KeyboardEventHandler {
     fn is_modifier_key(&self, key: &str) -> bool {
         matches!(
             key,
-            "ControlLeft" | "ControlRight" | "ShiftLeft" | "ShiftRight" 
-            | "Alt" | "AltGr" | "MetaLeft" | "MetaRight"
+            "ControlLeft"
+                | "ControlRight"
+                | "ShiftLeft"
+                | "ShiftRight"
+                | "Alt"
+                | "AltGr"
+                | "MetaLeft"
+                | "MetaRight"
         )
     }
 
@@ -215,22 +224,28 @@ mod tests {
     #[test]
     fn test_modifier_state() {
         let mut handler = KeyboardEventHandler::new();
-        
+
         // Test Ctrl key
         let ctrl_down = KeyboardEvent {
             key: "ControlLeft".to_string(),
             event_type: KeyboardEventType::KeyDown,
+            key_code: 0,
+            text: None,
+            timestamp: chrono::Utc::now(),
         };
-        
+
         handler.process_event(ctrl_down);
         assert!(handler.get_modifier_state().ctrl);
         assert!(!handler.get_modifier_state().shift);
-        
+
         let ctrl_up = KeyboardEvent {
             key: "ControlLeft".to_string(),
             event_type: KeyboardEventType::KeyUp,
+            key_code: 0,
+            text: None,
+            timestamp: chrono::Utc::now(),
         };
-        
+
         handler.process_event(ctrl_up);
         assert!(!handler.get_modifier_state().ctrl);
     }
@@ -238,13 +253,13 @@ mod tests {
     #[test]
     fn test_printable_key_detection() {
         let handler = KeyboardEventHandler::new();
-        
+
         assert!(handler.is_printable_key("a"));
         assert!(handler.is_printable_key("A"));
         assert!(handler.is_printable_key("1"));
         assert!(handler.is_printable_key(" "));
         assert!(handler.is_printable_key("Space"));
-        
+
         assert!(!handler.is_printable_key("ControlLeft"));
         assert!(!handler.is_printable_key("Escape"));
         assert!(!handler.is_printable_key("F1"));
@@ -253,28 +268,37 @@ mod tests {
     #[test]
     fn test_should_buffer_key() {
         let mut handler = KeyboardEventHandler::new();
-        
+
         // Regular character should be buffered
         let char_event = KeyboardEvent {
             key: "a".to_string(),
             event_type: KeyboardEventType::KeyDown,
+            key_code: 0,
+            text: None,
+            timestamp: chrono::Utc::now(),
         };
         assert!(handler.should_buffer_key(&char_event));
-        
+
         // Key up events should not be buffered
         let char_up = KeyboardEvent {
             key: "a".to_string(),
             event_type: KeyboardEventType::KeyUp,
+            key_code: 0,
+            text: None,
+            timestamp: chrono::Utc::now(),
         };
         assert!(!handler.should_buffer_key(&char_up));
-        
+
         // Set Ctrl modifier
         let ctrl_down = KeyboardEvent {
             key: "ControlLeft".to_string(),
             event_type: KeyboardEventType::KeyDown,
+            key_code: 0,
+            text: None,
+            timestamp: chrono::Utc::now(),
         };
         handler.process_event(ctrl_down);
-        
+
         // Character with Ctrl should not be buffered
         assert!(!handler.should_buffer_key(&char_event));
     }
@@ -282,20 +306,26 @@ mod tests {
     #[test]
     fn test_key_state_tracking() {
         let mut handler = KeyboardEventHandler::new();
-        
+
         let key_down = KeyboardEvent {
             key: "a".to_string(),
             event_type: KeyboardEventType::KeyDown,
+            key_code: 0,
+            text: None,
+            timestamp: chrono::Utc::now(),
         };
-        
+
         handler.process_event(key_down);
         assert!(handler.is_key_pressed("a"));
-        
+
         let key_up = KeyboardEvent {
             key: "a".to_string(),
             event_type: KeyboardEventType::KeyUp,
+            key_code: 0,
+            text: None,
+            timestamp: chrono::Utc::now(),
         };
-        
+
         handler.process_event(key_up);
         assert!(!handler.is_key_pressed("a"));
     }
@@ -303,29 +333,35 @@ mod tests {
     #[test]
     fn test_reset() {
         let mut handler = KeyboardEventHandler::new();
-        
+
         // Press some keys
         let events = vec![
             KeyboardEvent {
                 key: "ControlLeft".to_string(),
                 event_type: KeyboardEventType::KeyDown,
+                key_code: 0,
+                text: None,
+                timestamp: chrono::Utc::now(),
             },
             KeyboardEvent {
                 key: "a".to_string(),
                 event_type: KeyboardEventType::KeyDown,
+                key_code: 0,
+                text: None,
+                timestamp: chrono::Utc::now(),
             },
         ];
-        
+
         for event in events {
             handler.process_event(event);
         }
-        
+
         assert!(handler.get_modifier_state().ctrl);
         assert!(handler.is_key_pressed("a"));
-        
+
         // Reset should clear everything
         handler.reset();
-        
+
         assert!(!handler.get_modifier_state().ctrl);
         assert!(!handler.is_key_pressed("a"));
     }

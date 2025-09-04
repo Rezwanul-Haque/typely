@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde_json;
-use sqlx::{Pool, Sqlite, Row};
+use sqlx::{Pool, Row, Sqlite};
 use uuid::Uuid;
 
-use crate::domain::{Snippet, SnippetRepository, SnippetQuery, SortBy, SortOrder};
+use crate::domain::{Snippet, SnippetQuery, SnippetRepository, SortBy, SortOrder};
 
 pub struct SqliteSnippetRepository {
     pool: Pool<Sqlite>,
@@ -20,7 +20,7 @@ impl SqliteSnippetRepository {
 impl SnippetRepository for SqliteSnippetRepository {
     async fn save(&self, snippet: &Snippet) -> anyhow::Result<()> {
         let tags_json = serde_json::to_string(&snippet.tags)?;
-        
+
         sqlx::query(
             r#"
             INSERT INTO snippets (
@@ -158,7 +158,7 @@ impl SnippetRepository for SqliteSnippetRepository {
 
     async fn update(&self, snippet: &Snippet) -> anyhow::Result<()> {
         let tags_json = serde_json::to_string(&snippet.tags)?;
-        
+
         sqlx::query(
             r#"
             UPDATE snippets SET 
@@ -216,12 +216,10 @@ impl SnippetRepository for SqliteSnippetRepository {
     }
 
     async fn exists_with_trigger(&self, trigger: &str) -> anyhow::Result<bool> {
-        let count = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM snippets WHERE trigger = ?",
-        )
-        .bind(trigger)
-        .fetch_one(&self.pool)
-        .await?;
+        let count = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM snippets WHERE trigger = ?")
+            .bind(trigger)
+            .fetch_one(&self.pool)
+            .await?;
 
         Ok(count > 0)
     }
@@ -231,22 +229,22 @@ impl SqliteSnippetRepository {
     fn row_to_snippet(&self, row: sqlx::sqlite::SqliteRow) -> anyhow::Result<Snippet> {
         let id_str: String = row.get("id");
         let id = Uuid::parse_str(&id_str)?;
-        
+
         let created_at_str: String = row.get("created_at");
         let created_at = DateTime::parse_from_rfc3339(&created_at_str)?.with_timezone(&Utc);
-        
+
         let updated_at_str: String = row.get("updated_at");
         let updated_at = DateTime::parse_from_rfc3339(&updated_at_str)?.with_timezone(&Utc);
-        
+
         let is_active_int: i64 = row.get("is_active");
         let is_active = is_active_int != 0;
-        
+
         let usage_count_int: i64 = row.get("usage_count");
         let usage_count = usage_count_int as u64;
-        
+
         let tags_json: String = row.get("tags");
         let tags: Vec<String> = serde_json::from_str(&tags_json).unwrap_or_default();
-        
+
         Ok(Snippet {
             id,
             trigger: row.get("trigger"),
@@ -277,15 +275,15 @@ mod tests {
     #[tokio::test]
     async fn test_save_and_find_by_id() {
         let (repository, _temp_dir) = create_test_repository().await;
-        
+
         let snippet = Snippet::new("::test".to_string(), "Test replacement".to_string()).unwrap();
         let snippet_id = snippet.id;
-        
+
         repository.save(&snippet).await.unwrap();
-        
+
         let found = repository.find_by_id(&snippet_id).await.unwrap();
         assert!(found.is_some());
-        
+
         let found_snippet = found.unwrap();
         assert_eq!(found_snippet.trigger, "::test");
         assert_eq!(found_snippet.replacement, "Test replacement");
@@ -294,14 +292,14 @@ mod tests {
     #[tokio::test]
     async fn test_find_by_trigger() {
         let (repository, _temp_dir) = create_test_repository().await;
-        
+
         let snippet = Snippet::new("::hello".to_string(), "Hello World".to_string()).unwrap();
         repository.save(&snippet).await.unwrap();
-        
+
         let found = repository.find_by_trigger("::hello").await.unwrap();
         assert!(found.is_some());
         assert_eq!(found.unwrap().replacement, "Hello World");
-        
+
         let not_found = repository.find_by_trigger("::notfound").await.unwrap();
         assert!(not_found.is_none());
     }
@@ -309,13 +307,13 @@ mod tests {
     #[tokio::test]
     async fn test_update() {
         let (repository, _temp_dir) = create_test_repository().await;
-        
+
         let mut snippet = Snippet::new("::test".to_string(), "Original".to_string()).unwrap();
         repository.save(&snippet).await.unwrap();
-        
+
         snippet.update_replacement("Updated".to_string()).unwrap();
         repository.update(&snippet).await.unwrap();
-        
+
         let found = repository.find_by_id(&snippet.id).await.unwrap().unwrap();
         assert_eq!(found.replacement, "Updated");
     }
@@ -323,15 +321,15 @@ mod tests {
     #[tokio::test]
     async fn test_delete() {
         let (repository, _temp_dir) = create_test_repository().await;
-        
+
         let snippet = Snippet::new("::test".to_string(), "Test".to_string()).unwrap();
         let snippet_id = snippet.id;
-        
+
         repository.save(&snippet).await.unwrap();
-        
+
         let deleted = repository.delete(&snippet_id).await.unwrap();
         assert!(deleted);
-        
+
         let found = repository.find_by_id(&snippet_id).await.unwrap();
         assert!(found.is_none());
     }

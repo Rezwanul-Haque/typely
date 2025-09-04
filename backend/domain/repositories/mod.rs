@@ -1,6 +1,6 @@
+use crate::domain::{Snippet, SnippetQuery};
 use async_trait::async_trait;
 use uuid::Uuid;
-use crate::domain::{Snippet, SnippetQuery};
 
 #[async_trait]
 pub trait SnippetRepository: Send + Sync {
