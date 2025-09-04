@@ -13,7 +13,6 @@ use tauri::{
 use tokio::sync::Mutex;
 use typely::app::dto::*;
 use typely::app::services::TypelyService;
-use typely::infra::get_default_database_path;
 use typely::infra::DatabaseConnection;
 
 #[derive(serde::Serialize)]
