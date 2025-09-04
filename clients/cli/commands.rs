@@ -1,6 +1,6 @@
-use crate::app::services::TypelyService;
-use crate::app::dto::*;
-use crate::cli::args::{TypelyCommand, TypelyArgs};
+use typely::app::services::TypelyService;
+use typely::app::dto::*;
+use crate::args::{TypelyCommand, TypelyArgs};
 use anyhow::Result;
 use console::{style, Term};
 use std::fs;

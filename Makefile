@@ -13,6 +13,7 @@ NC = \033[0m # No Color
 
 # Variables
 BACKEND_DIR = backend
+CLI_DIR = clients/cli
 GUI_DIR = clients/gui
 FRONTEND_DIR = clients/frontend
 BUILD_DIR = dist
@@ -22,7 +23,7 @@ TARGET_DIR = target
 PROFILE ?= release
 FEATURES ?= system-integration
 
-.PHONY: help clean install-deps check test
+.PHONY: help clean install-deps install-rust check test all backend cli gui executable
 
 ## Display this help message
 help:
@@ -33,8 +34,11 @@ help:
 	@grep -E '^## .*$$' $(MAKEFILE_LIST) | sed 's/## /  /'
 	@echo ""
 	@echo "$(YELLOW)Usage examples:$(NC)"
-	@echo "  make all              # Build everything"
+	@echo "  make all              # Build everything from scratch (includes dependencies)"
+	@echo "  make setup            # Install Rust + system dependencies only"
+	@echo "  make quick            # Build backend + CLI only (faster)"
 	@echo "  make backend          # Build backend only"
+	@echo "  make cli              # Build CLI only"
 	@echo "  make gui              # Build GUI only"
 	@echo "  make executable       # Build executable binaries"
 	@echo "  make install          # Install to system"
@@ -77,8 +81,13 @@ install-deps:
 install-rust:
 	@echo "$(CYAN)Installing Rust toolchain...$(NC)"
 	@if ! command -v rustc >/dev/null 2>&1; then \
+		echo "$(YELLOW)Rust not found, installing...$(NC)"; \
 		curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
-		. $$HOME/.cargo/env; \
+		echo "$(YELLOW)Please restart your shell or run: source $$HOME/.cargo/env$(NC)"; \
+		source $$HOME/.cargo/env 2>/dev/null || true; \
+		export PATH="$$HOME/.cargo/bin:$$PATH"; \
+	else \
+		echo "$(GREEN)Rust already installed: $$(rustc --version)$(NC)"; \
 	fi
 	@echo "$(GREEN)Rust toolchain ready!$(NC)"
 
@@ -120,9 +129,10 @@ gui:
 executable:
 	@echo "$(CYAN)Building executables...$(NC)"
 	cd $(BACKEND_DIR) && cargo build --profile $(PROFILE) --features $(FEATURES) --bins
+	cd $(CLI_DIR) && cargo build --profile $(PROFILE)
 	@mkdir -p $(BUILD_DIR)
-	@cp $(BACKEND_DIR)/target/$(PROFILE)/typely $(BUILD_DIR)/
-	@cp $(BACKEND_DIR)/target/$(PROFILE)/typely-cli $(BUILD_DIR)/
+	@cp $(TARGET_DIR)/$(PROFILE)/typely $(BUILD_DIR)/
+	@cp $(TARGET_DIR)/$(PROFILE)/typely-cli $(BUILD_DIR)/
 	@chmod +x $(BUILD_DIR)/typely $(BUILD_DIR)/typely-cli
 	@echo "$(GREEN)Executables built in $(BUILD_DIR)/$(NC)"
 	@echo "  $(YELLOW)$(BUILD_DIR)/typely$(NC)     - Desktop application"
@@ -131,15 +141,18 @@ executable:
 ## Build CLI only (no GUI dependencies)
 cli:
 	@echo "$(CYAN)Building CLI only...$(NC)"
-	cd $(BACKEND_DIR) && cargo build --profile $(PROFILE) --no-default-features --features cli-only --bin typely-cli
+	cd $(CLI_DIR) && cargo build --profile $(PROFILE)
 	@mkdir -p $(BUILD_DIR)
-	@cp $(BACKEND_DIR)/target/$(PROFILE)/typely-cli $(BUILD_DIR)/
+	@cp $(TARGET_DIR)/$(PROFILE)/typely-cli $(BUILD_DIR)/
 	@chmod +x $(BUILD_DIR)/typely-cli
 	@echo "$(GREEN)CLI built in $(BUILD_DIR)/typely-cli$(NC)"
 
-## Build everything
-all: backend gui
+## Build everything from scratch (installs all dependencies)
+all: install-rust install-deps backend cli gui
 	@echo "$(GREEN)✓ All components built successfully!$(NC)"
+	@echo "$(YELLOW)Available executables:$(NC)"
+	@echo "  $(TARGET_DIR)/$(PROFILE)/typely     - Desktop application"
+	@echo "  $(TARGET_DIR)/$(PROFILE)/typely-cli - Command-line tool"
 
 ## Create distribution packages
 dist: all
@@ -197,7 +210,7 @@ dev:
 ## Run CLI in development
 dev-cli:
 	@echo "$(CYAN)Running CLI in development...$(NC)"
-	cd $(BACKEND_DIR) && cargo run --bin typely-cli --features $(FEATURES) -- $(ARGS)
+	cd $(CLI_DIR) && cargo run -- $(ARGS)
 
 ## Run desktop app in development
 dev-app:
@@ -219,12 +232,12 @@ status:
 	@echo "$(YELLOW)Features:$(NC) $(FEATURES)"
 	@echo ""
 	@echo "$(YELLOW)Build Artifacts:$(NC)"
-	@if [ -f "$(BACKEND_DIR)/target/$(PROFILE)/typely" ]; then \
+	@if [ -f "$(TARGET_DIR)/$(PROFILE)/typely" ]; then \
 		echo "  ✓ Backend (typely)"; \
 	else \
 		echo "  ✗ Backend (typely)"; \
 	fi
-	@if [ -f "$(BACKEND_DIR)/target/$(PROFILE)/typely-cli" ]; then \
+	@if [ -f "$(TARGET_DIR)/$(PROFILE)/typely-cli" ]; then \
 		echo "  ✓ CLI (typely-cli)"; \
 	else \
 		echo "  ✗ CLI (typely-cli)"; \
@@ -235,8 +248,16 @@ status:
 		echo "  ✗ GUI bundle"; \
 	fi
 
+## Quick build (backend + CLI only, no GUI dependencies)
+quick: install-rust install-deps backend cli
+	@echo "$(GREEN)Quick build completed!$(NC)"
+	@echo "$(YELLOW)Available executables:$(NC)"
+	@echo "  $(TARGET_DIR)/$(PROFILE)/typely     - Desktop application"
+	@echo "  $(TARGET_DIR)/$(PROFILE)/typely-cli - Command-line tool"
+	@echo "$(YELLOW)Tip: Run 'make gui' to build the GUI client$(NC)"
+
 ## Quick build and test
-quick: backend test
+test-quick: quick test
 	@echo "$(GREEN)Quick build and test completed!$(NC)"
 
 ## Release build (optimized)
@@ -249,6 +270,14 @@ debug:
 
 # Special targets for CI/CD
 .PHONY: ci-test ci-build ci-lint
-ci-test: install-deps test
-ci-build: install-deps all
-ci-lint: check
+ci-test: install-rust install-deps test
+ci-build: install-rust install-deps backend cli gui
+ci-lint: install-rust check
+
+## One-command setup for new machines
+setup: install-rust install-deps
+	@echo "$(GREEN)✓ Setup complete!$(NC)"
+	@echo "$(YELLOW)Next steps:$(NC)"
+	@echo "  make all     # Build everything (including GUI)"
+	@echo "  make quick   # Build backend + CLI only (faster)"
+	@echo "  make install # Build and install to system"

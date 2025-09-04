@@ -13,8 +13,7 @@ A cross-platform productivity tool designed to streamline text expansion. Define
 ```
 typely/
 ├── backend/                 # 🦀 Core Rust backend
-│   ├── bin/                # 🚀 Main entry points and library
-│   │   ├── lib.rs         # Library definition
+│   ├── bin/                # 🚀 Main entry points
 │   │   └── main.rs        # Desktop app entry point
 │   ├── domain/            # 🎯 Pure business entities & interfaces
 │   │   ├── entities/      # Core domain entities (Snippet, etc.)
@@ -26,9 +25,10 @@ typely/
 │   │   ├── database/     # SQLite database connection
 │   │   ├── repositories/ # Repository implementations
 │   │   └── engine/       # Text expansion engine
-│   ├── cli/              # 💻 Command-line interface
+│   ├── lib.rs            # Backend library definition
 │   └── scripts/          # 📦 Installation scripts
 ├── clients/
+│   ├── cli/              # 💻 Command-line interface
 │   ├── gui/              # 🖥️ Desktop GUI (Tauri)
 │   └── frontend/         # 🌐 Landing page & documentation
 ├── examples/             # 📝 Usage examples & sample data
@@ -70,8 +70,8 @@ curl -fsSL https://typely.sh/install | sh
 
 # Or build from source
 git clone https://github.com/typely/typely.git
-cd typely/backend
-cargo build --release --features system-integration
+cd typely
+make install
 ```
 
 ### Usage
@@ -107,20 +107,26 @@ ls examples/*.json
 
 ### Prerequisites
 - Rust 1.70+
-- SQLite development libraries
+- System dependencies (automatically installed via `make install-deps`):
+  - SQLite development libraries
+  - X11 libraries (Linux): `libx11-dev`, `libxi-dev`, `libxtst-dev`
+  - Build tools: `build-essential`, `pkg-config`
 
 ### Building
 
 ```bash
 # 🔨 Use the Makefile (recommended)
+make install-deps     # Install system dependencies
 make all              # Build everything
 make backend          # Build backend only
+make cli              # Build CLI only  
 make gui              # Build GUI only
 make executable       # Build executable binaries
 make install          # Install to system
 
 # Or manually:
-cd backend && cargo build --release
+cd backend && cargo build --release --features system-integration
+cd clients/cli && cargo build --release
 cd clients/gui && cargo tauri build
 ```
 
@@ -131,15 +137,22 @@ This project follows **Domain-Driven Design (DDD)** principles with clean archit
 - **Domain Layer**: Core business entities and interfaces - no external dependencies
 - **App Layer**: Services and use cases that coordinate domain operations
 - **Infra Layer**: Database, external services, and repository implementations
-- **Clients**: User interfaces (CLI, GUI, Web)
+- **Clients**: Separate applications for different interfaces:
+  - **CLI**: Command-line interface in `clients/cli/`
+  - **GUI**: Desktop application in `clients/gui/`
+  - **Frontend**: Web interface in `clients/frontend/`
 
 ### Features
 
 ```bash
 # Build options
-cargo build --release                           # Full functionality
-cargo build --no-default-features --features cli-only  # CLI only
-cargo build --features system-integration      # With system integration
+cargo build --release --features system-integration  # Full functionality (backend)
+cd clients/cli && cargo build --release              # CLI application
+cd clients/gui && cargo tauri build                  # GUI application
+
+# Feature flags for backend
+cargo build --no-default-features                    # Minimal build
+cargo build --features system-integration            # With X11/system integration
 ```
 
 ## 📁 Directory Details
@@ -158,12 +171,11 @@ cargo build --features system-integration      # With system integration
 - **`infra/`**: External concerns and implementations
   - `database/`: SQLite database connection and migrations
   - `repositories/`: Concrete repository implementations
-
-- **`cli/`**: Command-line interface implementation
-- **`engine/`**: Text expansion engine with system integration
+  - `engine/`: Text expansion engine with system integration
 
 ### Client Structure
 
+- **`clients/cli/`**: Command-line interface (separate Rust crate)
 - **`clients/gui/`**: Tauri-based desktop application
 - **`clients/frontend/`**: Web-based landing page and documentation
 

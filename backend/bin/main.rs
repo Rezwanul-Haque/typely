@@ -4,6 +4,7 @@ use typely::infra::database::DatabaseConnection;
 use typely::infra::get_default_database_path;
 use anyhow::Result;
 use log::info;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -16,8 +17,8 @@ async fn main() -> Result<()> {
     let service = TypelyService::new(db_connection).await;
     
     info!("Starting Typely text expansion engine...");
-    let engine = TextExpansionEngine::new(service).await?;
-    engine.run().await?;
+    let engine = TextExpansionEngine::new(Arc::new(service), None)?;
+    engine.start().await?;
     
     Ok(())
 }

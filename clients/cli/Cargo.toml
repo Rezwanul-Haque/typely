@@ -1,0 +1,24 @@
+[package]
+name = "typely-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Command-line interface for Typely text expansion tool"
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "typely-cli"
+path = "main.rs"
+
+[dependencies]
+# Reference to backend library
+typely = { path = "../../backend" }
+
+# CLI dependencies
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+env_logger.workspace = true
+console.workspace = true
+uuid.workspace = true

@@ -11,10 +11,6 @@ repository = "https://github.com/typely/typely"
 name = "typely"
 path = "bin/main.rs"
 
-[[bin]]
-name = "typely-cli"
-path = "cli/main.rs"
-
 [lib]
 name = "typely"
 path = "lib.rs"

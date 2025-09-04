@@ -3,7 +3,6 @@
 pub mod domain;
 pub mod app;
 pub mod infra;
-pub mod cli;
 
 // Re-export commonly used types
 pub use domain::*;

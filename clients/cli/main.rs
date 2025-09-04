@@ -1,9 +1,14 @@
 use typely::app::services::TypelyService;
 use typely::infra::{DatabaseConnection, get_default_database_path};
-use typely::cli::{TypelyArgs, TypelyCliHandler};
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
+
+mod args;
+mod commands;
+
+use args::TypelyArgs;
+use commands::TypelyCliHandler;
 
 #[tokio::main]
 async fn main() -> Result<()> {
