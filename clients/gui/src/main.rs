@@ -25,6 +25,7 @@ struct CliStatus {
 // Application state
 struct AppState {
     service: Arc<Mutex<TypelyService>>,
+    #[allow(dead_code)]
     window: Arc<Mutex<Option<tauri::Window>>>,
 }
 
@@ -463,6 +464,7 @@ async fn open_terminal_with_cli() -> Result<String, String> {
     Ok("Terminal opened with CLI ready".to_string())
 }
 
+#[allow(dead_code)]
 async fn create_tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let show = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
     let hide = MenuItem::with_id(app, "hide", "Hide Window", true, None::<&str>)?;
@@ -493,6 +495,7 @@ fn handle_tray_event(app: &AppHandle, event: TrayIconEvent) {
     }
 }
 
+#[allow(dead_code)]
 fn handle_menu_event(app: &AppHandle, event_id: &str) {
     match event_id {
         "quit" => {
@@ -531,7 +534,7 @@ async fn main() {
         .await
         .expect("Failed to initialize application state");
 
-    let app = tauri::Builder::default()
+    let _app = tauri::Builder::default()
         .manage(app_state)
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
